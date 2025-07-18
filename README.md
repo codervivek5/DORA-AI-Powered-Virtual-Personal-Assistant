@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/d476cdf0-7a01-4bcb-b61e-9f10b12216c5" width="200" alt="Logo">
 <h1>DORA - AI-Powered Virtual Personal Assistant 🤖</h1>
 </div>
 
