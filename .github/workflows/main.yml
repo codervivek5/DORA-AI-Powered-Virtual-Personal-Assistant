@@ -1,0 +1,23 @@
+name: PR Merge Thank You
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  thank-you-comment:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add thank you comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              issue_number: context.payload.pull_request.number,
+              body: "## 🎉 Thank you for your contribution!\n\nWe truly appreciate your effort in making this project better. 🚀"
+            })
