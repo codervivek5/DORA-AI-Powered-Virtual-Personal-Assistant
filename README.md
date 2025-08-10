@@ -30,7 +30,7 @@
 - [Tech Stack ⚙️](#%EF%B8%8F-tech-stack)
 - [Project Structure 📂](#-project-structure)
 - [Contributing 🤝](#-contributing)
-- [Our Contributors ❤️](#EF%B8%8F-our-contributors)
+- [Our Contributors ❤️](#%EF%B8%8F-our-contributors)
 - [Project Setup ⚙️](#%EF%B8%8F-project-setup)
 - [Contact 📬](#-contact)
 - [License 🛡️](#%EF%B8%8F-license)
