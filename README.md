@@ -33,7 +33,7 @@
 - [Our Contributors ❤️](#EF%B8%8F-our-contributors)
 - [Project Setup ⚙️](#-project-setup)
 - [Contact 📬](#-contact)
-- [License 🛡️](#license)
+- [License 🛡️](#%EF%B8%8F-license)
 
 ---
 
