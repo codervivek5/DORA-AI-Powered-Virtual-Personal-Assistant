@@ -1,0 +1,279 @@
+/* DORA AI - Background and Theme Styles */
+
+/* Main gradient background matching the provided image */
+.gradient-background {
+  background: linear-gradient(135deg, 
+    #0B0B2F 0%,     /* Deep navy at top-left */
+    #1A1A4A 20%,    /* Dark blue-navy */
+    #2A2A6A 40%,    /* Medium dark blue */
+    #3A3A8A 60%,    /* Medium blue */
+    #4A4AAA 80%,    /* Brighter blue */
+    #5A5ACA 100%    /* Vibrant blue at bottom-right */
+  );
+  background-attachment: fixed;
+  background-size: cover;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Subtle overlay for better text readability while preserving the gradient beauty */
+.gradient-background::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Ensure content appears above the overlay */
+.gradient-background > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Glass morphism effect for cards with enhanced contrast */
+.glass-card {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Enhanced glass effect for main chat area */
+.glass-chat-container {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+/* Message bubbles with enhanced gradient theme */
+.message-bubble-user {
+  background: linear-gradient(135deg, #4A4AAA, #5A5ACA);
+  color: white;
+  box-shadow: 0 6px 20px rgba(74, 74, 170, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message-bubble-assistant {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(12px);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Input area styling with better contrast */
+.input-container {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+}
+
+/* Button styling to match theme with better visibility */
+.theme-button {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.theme-button:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Primary button with enhanced gradient matching the background */
+.primary-button {
+  background: linear-gradient(135deg, #4A4AAA, #5A5ACA);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 20px rgba(74, 74, 170, 0.5);
+  transition: all 0.3s ease;
+}
+
+.primary-button:hover {
+  background: linear-gradient(135deg, #5A5ACA, #6A6AEA);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(74, 74, 170, 0.6);
+}
+
+/* Text colors for better contrast */
+.text-primary-theme {
+  color: #ffffff;
+}
+
+.text-secondary-theme {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.text-muted-theme {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Header styling with enhanced glass effect */
+.header-glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Welcome screen styling with better contrast */
+.welcome-card {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Feature cards with enhanced visibility */
+.feature-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Loading indicator with better visibility */
+.loading-dots {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* Accessibility tester styling with enhanced contrast */
+.accessibility-panel {
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: white;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Focus indicators with enhanced theme colors */
+.focus-ring {
+  outline: 2px solid #5A5ACA;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(90, 90, 202, 0.4);
+}
+
+/* Scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+/* Enh
+anced text contrast classes */
+.text-high-contrast {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.text-medium-contrast {
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.text-subtle-contrast {
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Enhanced placeholder text */
+.placeholder-enhanced::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Improved button states */
+.button-disabled {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+}
+
+/* Enhanced glass morphism for better readability */
+.glass-enhanced {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Improved scrollbar for the gradient theme */
+.gradient-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.gradient-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+}
+
+.gradient-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #4A4AAA, #5A5ACA);
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.gradient-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5A5ACA, #6A6AEA);
+}
+
+/* Animation for smooth transitions */
+.smooth-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced focus states for accessibility */
+.focus-enhanced:focus {
+  outline: 3px solid #5A5ACA;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px rgba(90, 90, 202, 0.3);
+}
+
+/* Improved contrast for interactive elements */
+.interactive-element {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.interactive-element:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.interactive-element:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
