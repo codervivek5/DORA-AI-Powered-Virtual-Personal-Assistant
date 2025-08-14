@@ -3,7 +3,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Mic, MicOff } from 'lucide-react';
-
+import { motion } from 'framer-motion';
 /**
  * VoiceToggleButton component for toggling voice input functionality
  * 
@@ -31,6 +31,29 @@ const VoiceToggleButton = ({ isActive, onToggle }) => {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0, scale: 0 },
+    visible: {
+      opacity: 1,
+      scale: [0, 1.2, 0.9, 1],
+      transition: {
+        duration: 0.6,
+        ease: "easeOut",
+        when: "beforeChildren",
+        staggerChildren: 0.1, // delay between child animations
+      },
+    },
+  };
+  
+  const childVariants = {
+    hidden: { opacity: 0, scale: 0 },
+    visible: {
+      opacity: 1,
+      scale: [0, 1.2, 0.9, 1],
+      transition: { duration: 0.5, ease: "easeOut" },
+    },
+  };
+
   return (
     <button
       onClick={handleClick}
@@ -51,14 +74,17 @@ const VoiceToggleButton = ({ isActive, onToggle }) => {
       tabIndex={0}
       role="button"
       type="button"
+       variants={containerVariants}
+      initial="hidden"
+      animate="visible"
     >
       {isActive ? (
-        <MicOff 
+        <MicOff variants={childVariants}
           className="w-5 h-5" 
           aria-hidden="true"
         />
       ) : (
-        <Mic 
+        <Mic variants={childVariants}
           className="w-5 h-5" 
           aria-hidden="true"
         />
