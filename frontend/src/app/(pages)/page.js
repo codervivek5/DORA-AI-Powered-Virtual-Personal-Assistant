@@ -1,3 +1,4 @@
+'use client';
 import React from 'react';
 import ChatWindow from '@/components/ChatWindow';
 
@@ -8,8 +9,10 @@ import ChatWindow from '@/components/ChatWindow';
  * and provides the main layout structure.
  */
 const HomePage = () => {
+  
   return (
     <div className="h-screen w-full">
+      
       <ChatWindow />
     </div>
   );
