@@ -1,3 +1,4 @@
+
 # Virtual environments
 backend/venv/
 venv/
@@ -26,32 +27,34 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# PyTest cache
-.pytest_cache/
-
-# macOS
-.DS_Store
-
-# Node modules (already in frontend/.gitignore)
-node_modules/
-
-# IDE files
-.vscode/
-.idea/
-
-# Logs
-*.log
-logs/
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
 
 # Environment variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
-# Temporary files
-*.tmp
-*.temp
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Local development
+*.sqlite3
+*.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
