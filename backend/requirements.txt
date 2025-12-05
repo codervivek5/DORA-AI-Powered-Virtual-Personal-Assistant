@@ -1,0 +1,17 @@
+python-dotenv
+murf
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+aiofiles
+SpeechRecognition
+pydub
+pyttsx3
+pyautogui
+pywinauto
+pyaudio
+psutil
+requests
+transformers        # optional, for local LLM helpers
+sentence-transformers  # optional, for RAG embeddings
