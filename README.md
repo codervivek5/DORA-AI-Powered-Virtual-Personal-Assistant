@@ -23,17 +23,17 @@
 
 ## 📚 Table of Contents
 
-- [Introduction 👋](#introduction)
-- [Design Preview 🎨](#design-preview)
-- [Repository 📁](#repository)
-- [Features ⭐](#features)
-- [Tech Stack ⚙️](#tech-stack)
-- [Project Structure 📂](#project-structure)
-- [Contributing 🤝](#contributing)
-- [Our Contributors ❤️](#our-contributors)
-- [Project Setup ⚙️](#project-setup)
-- [Contact 📬](#contact)
-- [License 🛡️](#license)
+- [Introduction 👋](#-introduction)
+- [Design Preview 🎨](#-design-preview)
+- [Repository 📁](#-repository)
+- [Features ⭐](#-features)
+- [Tech Stack ⚙️](#%EF%B8%8F-tech-stack)
+- [Project Structure 📂](#-project-structure)
+- [Contributing 🤝](#-contributing)
+- [Our Contributors ❤️](#%EF%B8%8F-our-contributors)
+- [Project Setup ⚙️](#%EF%B8%8F-project-setup)
+- [Contact 📬](#-contact)
+- [License 🛡️](#%EF%B8%8F-license)
 
 ---
 

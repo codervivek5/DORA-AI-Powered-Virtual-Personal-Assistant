@@ -1,4 +1,12 @@
-# Python
+
+# Virtual environments
+backend/venv/
+venv/
+.venv/
+ENV/
+env/
+
+# Python cache and metadata
 __pycache__/
 *.py[cod]
 *$py.class

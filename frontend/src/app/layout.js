@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "../styles/background.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,10 +23,10 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link rel="manifest" href="/favicon/site.webmanifest" />
-        <meta name="theme-color" content="#ffffff" />
+        <meta name="theme-color" content="#0B0B2F" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased gradient-background`}
       >
         {children}
       </body>

@@ -1,0 +1,16 @@
+name: PR Merge Notification
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  notify:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Display Merge Message
+        run: |
+          echo "🎉 Thank you for your contribution! 🙂"
+          echo "Feel free to share this successfully merged PR on LinkedIn with the hashtag #doraAI — and don’t forget to tag me there!"
