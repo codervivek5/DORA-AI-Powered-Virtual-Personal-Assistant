@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Send, Mic, MicOff, Plus } from 'lucide-react';
-import {motion} from 'framer-motion';
+import { motion } from 'framer-motion';
 const UserInput = React.forwardRef(({ onSendMessage, isLoading, isVoiceActive }, ref) => {
   const [inputValue, setInputValue] = useState('');
   const [isComposing, setIsComposing] = useState(false);
@@ -63,9 +63,9 @@ const UserInput = React.forwardRef(({ onSendMessage, isLoading, isVoiceActive },
 
   return (
     <motion.div initial={{ opacity: 0, y: -50 }} // starting state
-                  animate={{ opacity: 1, y: 0 }} // animate to
-                  transition={{ duration: 0.3 }} // animation speed
-                   className="max-w-4xl mx-auto">
+      animate={{ opacity: 1, y: 0 }} // animate to
+      transition={{ duration: 0.3 }} // animation speed
+      className="max-w-4xl mx-auto">
       <form
         onSubmit={handleSubmit}
         className="relative"
@@ -191,7 +191,7 @@ const UserInput = React.forwardRef(({ onSendMessage, isLoading, isVoiceActive },
         )}
         {isLoading && (
           <div className="sr-only" aria-live="polite">
-            DORA is typing a response...
+            Muskan is typing a response...
           </div>
         )}
       </form>

@@ -17,13 +17,13 @@ import { cn } from '@/lib/utils';
  */
 const LoadingIndicator = () => {
   return (
-    <div 
+    <div
       className="flex justify-start"
       role="status"
       aria-live="polite"
-      aria-label="DORA is typing"
+      aria-label="Muskan is typing"
     >
-      <div 
+      <div
         className={cn(
           "max-w-[80%] sm:max-w-[70%] md:max-w-[60%] lg:max-w-[50%]",
           "rounded-2xl px-4 py-3",
@@ -33,26 +33,26 @@ const LoadingIndicator = () => {
         <div className="flex items-center gap-2">
           {/* Animated dots */}
           <div className="flex gap-1">
-            <div 
+            <div
               className="w-2 h-2 loading-dots rounded-full animate-bounce"
               style={{ animationDelay: '0ms' }}
               aria-hidden="true"
             />
-            <div 
+            <div
               className="w-2 h-2 loading-dots rounded-full animate-bounce"
               style={{ animationDelay: '150ms' }}
               aria-hidden="true"
             />
-            <div 
+            <div
               className="w-2 h-2 loading-dots rounded-full animate-bounce"
               style={{ animationDelay: '300ms' }}
               aria-hidden="true"
             />
           </div>
-          
+
           {/* Text for screen readers */}
           <span className="sr-only">
-            DORA is typing a response...
+            Muskan is typing a response...
           </span>
         </div>
       </div>

@@ -6,6 +6,12 @@ import uvicorn
 from datetime import datetime
 import json
 
+# Import Muskan core modules
+from core.brain import brain
+from core.stt import stt_provider
+from core.tts import tts_provider
+from config.settings import settings
+
 # Initialize FastAPI app
 app = FastAPI(
     title="DORA AI - Virtual Personal Assistant API",
@@ -51,7 +57,7 @@ tasks = []
 async def root():
     """Root endpoint with API information"""
     return {
-        "message": "DORA AI - Virtual Personal Assistant API",
+        "message": "Muskan AI - Virtual Personal Assistant API",
         "version": "1.0.0",
         "status": "running",
         "endpoints": {
@@ -71,6 +77,7 @@ async def health_check():
 async def chat_endpoint(message: ChatMessage):
     """
     Chat endpoint for processing user messages and generating AI responses
+    Uses Muskan Brain (Ollama) for intelligent responses
     """
     try:
         # Add user message to history
@@ -81,8 +88,8 @@ async def chat_endpoint(message: ChatMessage):
         }
         chat_history.append(user_msg)
         
-        # Simulate AI processing (replace with actual AI integration)
-        ai_response = generate_ai_response(message.content)
+        # Use Muskan Brain for AI processing
+        ai_response = brain.chat(message.content)
         
         # Create response
         response = ChatResponse(
@@ -113,16 +120,57 @@ async def get_chat_history():
 async def voice_endpoint(request: VoiceRequest):
     """
     Voice processing endpoint for speech-to-text and text-to-speech
+    Uses Whisper for STT and Piper for TTS
     """
     try:
-        # Simulate voice processing (replace with actual voice API integration)
-        # For now, return a mock response
-        return {
-            "transcript": "Voice input received",
-            "response": "I heard your voice message. This is a simulated response.",
-            "audio_url": None,  # Would contain TTS audio URL
-            "timestamp": datetime.now()
-        }
+        import base64
+        import tempfile
+        import os
+        
+        # Decode base64 audio data
+        audio_bytes = base64.b64decode(request.audio_data)
+        
+        # Save to temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
+            temp_file.write(audio_bytes)
+            temp_file_path = temp_file.name
+        
+        try:
+            # Transcribe audio using STT provider
+            transcript = stt_provider.transcribe_with_whisper(temp_file_path)
+            if not transcript:
+                transcript = stt_provider.transcribe_with_google(
+                    temp_file_path, 
+                    language=request.language
+                )
+            
+            if not transcript:
+                return {
+                    "transcript": "",
+                    "response": "I couldn't understand the audio. Please try again.",
+                    "audio_url": None,
+                    "timestamp": datetime.now()
+                }
+            
+            # Get AI response from brain
+            ai_response = brain.chat(transcript)
+            
+            # Generate TTS audio (optional - can be done client-side)
+            # For now, return text response
+            
+            return {
+                "transcript": transcript,
+                "response": ai_response,
+                "audio_url": None,  # TTS can be handled client-side or via separate endpoint
+                "timestamp": datetime.now()
+            }
+            
+        finally:
+            # Clean up temporary file
+            try:
+                os.unlink(temp_file_path)
+            except:
+                pass
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing voice: {str(e)}")
@@ -185,37 +233,19 @@ async def delete_task(task_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting task: {str(e)}")
 
-def generate_ai_response(user_message: str) -> str:
-    """
-    Generate AI response based on user message
-    This is a simple simulation - replace with actual AI integration
-    """
-    user_message_lower = user_message.lower()
+@app.get("/health/brain")
+async def brain_health():
+    """Check if DORA Brain (Ollama) is available"""
+    is_connected = brain.check_ollama_connection()
+    models = brain.get_available_models() if is_connected else []
     
-    # Simple response logic for demo
-    if "hello" in user_message_lower or "hi" in user_message_lower:
-        return "Hello! I'm DORA, your AI-powered virtual personal assistant. How can I help you today?"
-    
-    elif "help" in user_message_lower:
-        return "I can help you with:\n• Chat and voice interactions\n• Task management\n• Reminders and calendar\n• Email handling\n• Information search\n• Smart home integration\n\nWhat would you like to do?"
-    
-    elif "task" in user_message_lower or "todo" in user_message_lower:
-        return "I can help you manage tasks! You can create, update, and delete tasks through the API. Would you like me to show you your current tasks?"
-    
-    elif "weather" in user_message_lower:
-        return "I can provide weather information! However, this is currently a demo. In the full implementation, I would connect to a weather API to give you real-time weather data."
-    
-    elif "reminder" in user_message_lower:
-        return "I can set reminders for you! Just let me know what you'd like to be reminded about and when."
-    
-    elif "email" in user_message_lower:
-        return "I can help you with emails! I can read, draft, and summarize emails. What would you like to do with your emails?"
-    
-    elif "thank" in user_message_lower:
-        return "You're welcome! I'm here to help make your life easier. Is there anything else you'd like assistance with?"
-    
-    else:
-        return f"I received your message: '{user_message}'. This is a simulated response from the DORA AI backend. In the full implementation, this would be processed by advanced AI models including LLMs, RAG systems, and agentic AI for more intelligent responses."
+    return {
+        "brain_available": is_connected,
+        "provider": settings.LLM_PROVIDER,
+        "model": settings.OLLAMA_MODEL,
+        "available_models": models,
+        "status": "healthy" if is_connected else "unavailable"
+    }
 
 if __name__ == "__main__":
     uvicorn.run(

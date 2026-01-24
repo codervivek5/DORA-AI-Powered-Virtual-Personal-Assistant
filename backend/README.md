@@ -1,5 +1,5 @@
 <div align="center">
-<h1>DORA - AI-Powered Virtual Personal Assistant 🤖</h1>
+<h1>Muskan - AI-Powered Virtual Personal Assistant 🤖</h1>
 </div>
 
 <div align="center">
@@ -39,7 +39,7 @@
 
 ## 👋 Introduction
 
-**DORA** is your AI-powered productivity companion designed to simplify your daily life. From task automation to smart reminders and intelligent information search, DORA leverages Generative AI, LLMs, RAG, and Agentic AI to bring you a truly smart virtual assistant experience.
+**Muskan** is your AI-powered productivity companion designed to simplify your daily life. From task automation to smart reminders and intelligent information search, Muskan leverages Generative AI, LLMs, RAG, and Agentic AI to bring you a truly smart virtual assistant experience.
 
 ---
 
@@ -52,7 +52,7 @@ _Coming Soon_
 ## 📁 Repository
 
 Fed up with switching between apps for tasks, reminders, emails, and automation?  
-**DORA** combines them all — with AI at the core — making your productivity seamless.
+**Muskan** combines them all — with AI at the core — making your productivity seamless.
 
 ---
 
@@ -89,7 +89,7 @@ Fed up with switching between apps for tasks, reminders, emails, and automation?
 
 ```
 
-DORA/
+Muskan/
 ├── frontend/        # Mobile & Web app (React)
 ├── backend/         # API Server, AI Layer, MCP Server (Python FastAPI)
 ├── docs/            # Project Documentation
@@ -195,7 +195,7 @@ This project is licensed under the [MIT License](https://github.com/codervivek5/
 ---
 
 <div align="center">
-<h3>© 2024 Coder Vivek - Creator of DORA</h3>
+<h3>© 2024 Coder Vivek - Creator of Muskan</h3>
 </div>
 
 <p align="right">(<a href="#top">Back to top</a>)</p>

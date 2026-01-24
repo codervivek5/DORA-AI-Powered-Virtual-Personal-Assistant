@@ -21,34 +21,34 @@ import { motion } from 'framer-motion';
  */
 
 const containerVariants = {
-    hidden: { opacity: 0, scale: 0 },
-    visible: {
-      opacity: 1,
-      scale: [0, 1.2, 0.9, 1],
-      transition: {
-        duration: 0.6,
-        ease: "easeOut",
-        when: "beforeChildren",
-        staggerChildren: 0.1, // delay between child animations
-      },
+  hidden: { opacity: 0, scale: 0 },
+  visible: {
+    opacity: 1,
+    scale: [0, 1.2, 0.9, 1],
+    transition: {
+      duration: 0.6,
+      ease: "easeOut",
+      when: "beforeChildren",
+      staggerChildren: 0.1, // delay between child animations
     },
-  };
+  },
+};
 
-  const childVariants = {
-    hidden: { opacity: 0, scale: 0 },
-    visible: {
-      opacity: 1,
-      scale: [0, 1.2, 0.9, 1],
-      transition: { duration: 0.5, ease: "easeOut" },
-    },
-  };
+const childVariants = {
+  hidden: { opacity: 0, scale: 0 },
+  visible: {
+    opacity: 1,
+    scale: [0, 1.2, 0.9, 1],
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
+};
 const MessageList = ({ messages, isLoading }) => {
   const messageCount = messages.length;
-  
+
   return (
-    <motion.div  variants={containerVariants}
+    <motion.div variants={containerVariants}
       initial="hidden"
-      animate="visible" 
+      animate="visible"
       className="space-y-4"
       role="log"
       aria-live="polite"
@@ -59,12 +59,12 @@ const MessageList = ({ messages, isLoading }) => {
       <motion.div variants={childVariants} id="message-list-description" className="sr-only">
         Use arrow keys to navigate between messages. Messages are automatically announced as they appear.
       </motion.div>
-      
+
       {/* Message list */}
       <ul className="space-y-4" role="list">
         {messages.map((message, index) => (
-          <motion.li variants={childVariants}  key={message.id} role="listitem">
-            <ChatBubble 
+          <motion.li variants={childVariants} key={message.id} role="listitem">
+            <ChatBubble
               message={message}
               messageIndex={index + 1}
               totalMessages={messageCount}
@@ -72,19 +72,19 @@ const MessageList = ({ messages, isLoading }) => {
           </motion.li>
         ))}
       </ul>
-      
+
       {isLoading && (
         <LoadingIndicator />
       )}
-      
+
       {/* Empty state */}
       {messages.length === 0 && !isLoading && (
-        <div 
+        <div
           className="text-center py-8 text-medium-contrast"
           role="status"
           aria-label="No messages yet"
         >
-          <p>No messages yet. Start a conversation with DORA!</p>
+          <p>No messages yet. Start a conversation with Muskan!</p>
         </div>
       )}
     </motion.div>

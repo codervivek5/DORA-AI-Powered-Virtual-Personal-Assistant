@@ -6,7 +6,7 @@ import UserInput from "./UserInput";
 import VoiceToggleButton from "./VoiceToggleButton";
 import { motion } from "framer-motion";
 /**
- * ChatWindow - Main chat interface component for DORA AI
+ * ChatWindow - Main chat interface component for Muskan AI
  *
  * Enhanced Accessibility Features:
  * - Comprehensive ARIA landmarks and labels
@@ -30,7 +30,7 @@ const ChatWindow = () => {
       id: 1,
       type: "assistant",
       content:
-        "Hello! I'm DORA, your AI-powered virtual personal assistant. How can I help you today?",
+        "Hello! I'm Muskan, your AI-powered virtual personal assistant. How can I help you today?",
       timestamp: new Date(),
     },
   ]);
@@ -48,7 +48,7 @@ const ChatWindow = () => {
     if (messages.length > 1) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage.type === "assistant") {
-        setAnnounceMessage(`DORA responded: ${lastMessage.content}`);
+        setAnnounceMessage(`Muskan responded: ${lastMessage.content}`);
         setTimeout(() => setAnnounceMessage(""), 100);
       }
     }
@@ -97,7 +97,7 @@ const ChatWindow = () => {
       const aiResponse = {
         id: Date.now() + 1,
         type: "assistant",
-        content: `I understand you said: "${content.trim()}". This is a simulated response from DORA AI. In a real implementation, this would connect to your AI backend.`,
+        content: `I understand you said: "${content.trim()}". This is a simulated response from Muskan AI. In a real implementation, this would connect to your AI backend.`,
         timestamp: new Date(),
       };
 
@@ -180,7 +180,7 @@ const ChatWindow = () => {
         id="main-content"
         className="flex flex-col h-screen max-h-screen glass-chat-container rounded-lg m-4"
         role="main"
-        aria-label="DORA AI Chat Interface"
+        aria-label="Muskan AI Chat Interface"
       >
         {/* Top Bar */}
         <header className="flex items-center justify-between p-4 header-glass rounded-t-lg">
@@ -195,7 +195,7 @@ const ChatWindow = () => {
                 variants={childVariants}
                 className="text-white font-bold text-sm"
               >
-                D
+                M
               </motion.span>
             </motion.div>
 
@@ -209,7 +209,7 @@ const ChatWindow = () => {
                 variants={childVariants}
                 className="text-lg font-semibold text-high-contrast"
               >
-                DORA AI
+                Muskan AI
               </motion.h1>
 
               <motion.p
@@ -241,7 +241,7 @@ const ChatWindow = () => {
                   className="space-y-4"
                 >
                   <h2 className="text-4xl font-bold text-high-contrast">
-                    Introducing DORA AI
+                    Introducing Muskan AI
                   </h2>
                   <p className="text-lg text-medium-contrast leading-relaxed">
                     Your intelligent virtual personal assistant designed to

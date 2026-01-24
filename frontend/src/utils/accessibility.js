@@ -1,5 +1,5 @@
 /**
- * Accessibility Utilities for DORA AI Chat Interface
+ * Accessibility Utilities for Muskan AI Chat Interface
  * 
  * This file contains utilities for testing and validating accessibility features
  * implemented in the chat components using axe-core and custom tests.
@@ -109,7 +109,7 @@ export const runAxeTests = async () => {
         'region': { enabled: true }
       }
     });
-    
+
     return {
       violations: results.violations,
       passes: results.passes,
@@ -153,7 +153,7 @@ export const runAccessibilityTests = async () => {
     const interactiveElements = document.querySelectorAll('button, input, textarea, [role]');
     let ariaLabelsFound = 0;
     let focusIndicatorsFound = 0;
-    
+
     interactiveElements.forEach(element => {
       // Check for proper ARIA labels
       if (element.hasAttribute('aria-label') || element.hasAttribute('aria-labelledby')) {
@@ -161,14 +161,14 @@ export const runAccessibilityTests = async () => {
       } else if (element.tagName === 'BUTTON' || element.tagName === 'INPUT') {
         results.warnings.push(`Missing ARIA label on ${element.tagName}`);
       }
-      
+
       // Check for focus indicators
       const computedStyle = window.getComputedStyle(element);
       if (computedStyle.outline !== 'none' || computedStyle.boxShadow !== 'none') {
         focusIndicatorsFound++;
       }
     });
-    
+
     results.passed.push(`ARIA labels found on ${ariaLabelsFound} elements`);
     results.passed.push(`Focus indicators found on ${focusIndicatorsFound} elements`);
   };
@@ -178,10 +178,10 @@ export const runAccessibilityTests = async () => {
     const focusableElements = document.querySelectorAll(
       'button, input, textarea, select, a, [tabindex]:not([tabindex="-1"])'
     );
-    
+
     if (focusableElements.length > 0) {
       results.passed.push(`Found ${focusableElements.length} focusable elements`);
-      
+
       // Test tab order
       let tabIndexIssues = 0;
       focusableElements.forEach((element, index) => {
@@ -190,7 +190,7 @@ export const runAccessibilityTests = async () => {
           tabIndexIssues++;
         }
       });
-      
+
       if (tabIndexIssues === 0) {
         results.passed.push('Tab order appears logical');
       } else {
@@ -207,21 +207,21 @@ export const runAccessibilityTests = async () => {
     const isMobile = viewport < 768;
     const isTablet = viewport >= 768 && viewport < 1024;
     const isDesktop = viewport >= 1024;
-    
+
     results.passed.push(`Responsive design detected: ${isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop'} viewport (${viewport}px)`);
-    
+
     // Test for minimum touch target sizes on mobile
     if (isMobile) {
       const touchTargets = document.querySelectorAll('button, input, a, [role="button"]');
       let smallTargets = 0;
-      
+
       touchTargets.forEach(element => {
         const rect = element.getBoundingClientRect();
         if (rect.width < 44 || rect.height < 44) {
           smallTargets++;
         }
       });
-      
+
       if (smallTargets === 0) {
         results.passed.push('All touch targets meet minimum size requirements (44px)');
       } else {
@@ -235,21 +235,21 @@ export const runAccessibilityTests = async () => {
     const landmarks = document.querySelectorAll('main, nav, header, footer, aside, section, article');
     const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
     const lists = document.querySelectorAll('ul, ol');
-    
+
     results.passed.push(`Found ${landmarks.length} landmark elements`);
     results.passed.push(`Found ${headings.length} heading elements`);
     results.passed.push(`Found ${lists.length} list elements`);
-    
+
     // Check for proper heading hierarchy
     const headingLevels = Array.from(headings).map(h => parseInt(h.tagName.charAt(1)));
     let hierarchyIssues = 0;
-    
+
     for (let i = 1; i < headingLevels.length; i++) {
-      if (headingLevels[i] > headingLevels[i-1] + 1) {
+      if (headingLevels[i] > headingLevels[i - 1] + 1) {
         hierarchyIssues++;
       }
     }
-    
+
     if (hierarchyIssues === 0) {
       results.passed.push('Heading hierarchy appears correct');
     } else {
@@ -271,34 +271,34 @@ export const runAccessibilityTests = async () => {
  */
 export const logAccessibilityResults = async () => {
   const results = await runAccessibilityTests();
-  
-  console.group('🔍 DORA AI Accessibility Test Results');
+
+  console.group('🔍 Muskan AI Accessibility Test Results');
   console.log('✅ Passed:', results.passed.length);
   console.log('❌ Failed:', results.failed.length);
   console.log('⚠️ Warnings:', results.warnings.length);
-  
+
   if (results.passed.length > 0) {
     console.group('✅ Passed Tests');
     results.passed.forEach(test => console.log(test));
     console.groupEnd();
   }
-  
+
   if (results.failed.length > 0) {
     console.group('❌ Failed Tests');
     results.failed.forEach(test => console.log(test));
     console.groupEnd();
   }
-  
+
   if (results.warnings.length > 0) {
     console.group('⚠️ Warnings');
     results.warnings.forEach(test => console.log(test));
     console.groupEnd();
   }
-  
+
   // Log detailed axe-core results
   if (results.axeResults) {
     console.group('🔧 Axe-Core Detailed Results');
-    
+
     if (results.axeResults.violations.length > 0) {
       console.group('❌ Violations');
       results.axeResults.violations.forEach(violation => {
@@ -311,7 +311,7 @@ export const logAccessibilityResults = async () => {
       });
       console.groupEnd();
     }
-    
+
     if (results.axeResults.incomplete.length > 0) {
       console.group('⚠️ Incomplete Tests');
       results.axeResults.incomplete.forEach(incomplete => {
@@ -319,12 +319,12 @@ export const logAccessibilityResults = async () => {
       });
       console.groupEnd();
     }
-    
+
     console.groupEnd();
   }
-  
+
   console.groupEnd();
-  
+
   return results;
 };
 

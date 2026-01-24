@@ -1,5 +1,5 @@
 /**
- * DORA AI Chat Interface - Component Demonstration
+ * Muskan AI Chat Interface - Component Demonstration
  * 
  * This file demonstrates the fully refactored UserInput component
  * with all accessibility enhancements and responsive design features.
@@ -45,7 +45,7 @@ const UserInputDemo = () => {
     try {
       // Simulate API call with accessibility announcements
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       const aiResponse = {
         id: Date.now() + 1,
         type: 'assistant',
@@ -65,11 +65,11 @@ const UserInputDemo = () => {
     <div className="min-h-screen bg-background p-4">
       {/* Accessibility Instructions */}
       <div className="max-w-4xl mx-auto mb-8">
-        <h1 className="text-2xl font-bold mb-4">DORA AI - Accessible Chat Interface Demo</h1>
-        
+        <h1 className="text-2xl font-bold mb-4">Muskan AI - Accessible Chat Interface Demo</h1>
+
         <div className="bg-card border border-border rounded-lg p-6 mb-6">
           <h2 className="text-lg font-semibold mb-3">Accessibility Features Demonstrated</h2>
-          
+
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <h3 className="font-medium mb-2">Keyboard Navigation</h3>
@@ -81,7 +81,7 @@ const UserInputDemo = () => {
                 <li>• <kbd>Ctrl + C</kbd> - Copy focused message</li>
               </ul>
             </div>
-            
+
             <div>
               <h3 className="font-medium mb-2">Screen Reader Support</h3>
               <ul className="text-sm text-muted-foreground space-y-1">
@@ -96,7 +96,7 @@ const UserInputDemo = () => {
         </div>
 
         {/* Message Display Area */}
-        <div 
+        <div
           className="bg-card border border-border rounded-lg p-4 mb-4 min-h-[200px] max-h-[400px] overflow-y-auto"
           role="log"
           aria-live="polite"
@@ -114,13 +114,12 @@ const UserInputDemo = () => {
                   className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                      message.type === 'user'
+                    className={`max-w-[80%] rounded-lg px-4 py-2 ${message.type === 'user'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-foreground'
-                    }`}
+                      }`}
                     role="article"
-                    aria-label={`${message.type === 'user' ? 'Your' : 'DORA\'s'} message`}
+                    aria-label={`${message.type === 'user' ? 'Your' : 'Muskan\'s'} message`}
                     tabIndex={0}
                   >
                     <div className="text-sm">{message.content}</div>
@@ -132,7 +131,7 @@ const UserInputDemo = () => {
               ))}
             </div>
           )}
-          
+
           {isLoading && (
             <div className="flex justify-start">
               <div className="bg-muted rounded-lg px-4 py-2">
@@ -142,7 +141,7 @@ const UserInputDemo = () => {
                     <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                     <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
-                  <span className="sr-only">DORA is typing...</span>
+                  <span className="sr-only">Muskan is typing...</span>
                 </div>
               </div>
             </div>
@@ -165,7 +164,7 @@ const UserInputDemo = () => {
           <h2 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-3">
             ✅ Accessibility Testing Results
           </h2>
-          
+
           <div className="grid md:grid-cols-3 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">100</div>
@@ -180,11 +179,11 @@ const UserInputDemo = () => {
               <div className="text-sm text-green-700 dark:text-green-300">Compliance Level</div>
             </div>
           </div>
-          
+
           <div className="mt-4 text-sm text-green-700 dark:text-green-300">
             <p>
-              <strong>After running axe-core and manual testing:</strong> All critical accessibility 
-              issues have been resolved. The component passes all WCAG 2.1 AA guidelines and 
+              <strong>After running axe-core and manual testing:</strong> All critical accessibility
+              issues have been resolved. The component passes all WCAG 2.1 AA guidelines and
               provides excellent support for keyboard navigation, screen readers, and responsive design.
             </p>
           </div>
@@ -193,7 +192,7 @@ const UserInputDemo = () => {
 
       {/* Live Region for Announcements */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
-        {isLoading && "DORA is typing a response..."}
+        {isLoading && "Muskan is typing a response..."}
       </div>
     </div>
   );

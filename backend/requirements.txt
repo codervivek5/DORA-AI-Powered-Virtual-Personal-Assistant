@@ -1,17 +1,18 @@
 python-dotenv
-murf
 fastapi
 uvicorn[standard]
 pydantic
 python-multipart
 aiofiles
-SpeechRecognition
+SpeechRecognition  # Fallback STT provider
 pydub
-pyttsx3
+pyttsx3  # Fallback TTS provider
 pyautogui
 pywinauto
 pyaudio
+sounddevice
 psutil
-requests
-transformers        # optional, for local LLM helpers
-sentence-transformers  # optional, for RAG embeddings
+requests  # For Ollama API calls
+faster-whisper  # Primary STT provider (Whisper)
+transformers  # Optional, for local LLM helpers
+sentence-transformers  # Optional, for RAG embeddings
