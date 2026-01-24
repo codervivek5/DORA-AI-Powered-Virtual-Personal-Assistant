@@ -1,9 +1,15 @@
 # ui/desktop.py
+import time
+import os
+import sys
+import platform
 import customtkinter as ctk
 import threading
 from core.brain import brain
 from core.stt import transcribe_from_mic
 from core.tts import tts_provider
+from core.wakeword import MuskanWakeWord
+from core.actions.manager import action_manager
 
 class MuskanUI(ctk.CTk):
     def __init__(self):
@@ -15,7 +21,7 @@ class MuskanUI(ctk.CTk):
         self.overrideredirect(True)      # Removes standard Mac title bar
         self.attributes("-topmost", True) # Always on top
         self.attributes("-alpha", 0.85)   # The "Glass" transparency effect
-        self.wm_attributes("-transparent", True) # MacOS specific transparency
+        self.wm_attributes("-transparent", True) # macOS specific transparency
         self.config(bg='systemTransparent')
 
         # 2. Glassmorphism Design
@@ -66,20 +72,48 @@ class MuskanUI(ctk.CTk):
         thread.start()
 
     def voice_loop(self):
+        detector = MuskanWakeWord()
+        active_session = False
+        last_interaction_time = 0
+        SESSION_TIMEOUT = 10  # Seconds to stay awake after last response
+
         while True:
-            self.update_status("Say 'Muskan'...", "#505050")
-            # Logic: Here you would call your STT wake-word logic
-            # For now, let's trigger a chat manually
-            user_text = transcribe_from_mic(phrase_time_limit=5)
+            current_time = time.time()
             
+            # Decide if we need to wait for wake word or just listen for command
+            if active_session and (current_time - last_interaction_time < SESSION_TIMEOUT):
+                self.update_status("Listening (Active)...", "#00D4FF")
+                user_text = transcribe_from_mic(phrase_time_limit=5)
+            else:
+                active_session = False
+                self.update_status("Say 'Muskan'...", "gray")
+                # This blocks until "Muskan" is heard
+                if detector.listen():
+                    active_session = True
+                    self.update_status("I'm here! Listening...", "#00D4FF")
+                    user_text = transcribe_from_mic(phrase_time_limit=5)
+                else:
+                    user_text = None
+
             if user_text:
+                print(f"🧠 Brain: Processing query: '{user_text}'")
                 self.update_status("Thinking...", "#FFCC00")
-                response = brain.chat(user_text)
+                ai_raw_response = brain.chat(user_text)
+                print(f"🤖 AI Raw: {ai_raw_response}")
+                
+                # Parse actions and get spoken response
+                spoken_response = action_manager.parse_and_execute(ai_raw_response)
+                print(f"💬 Muskan: {spoken_response}")
                 
                 self.update_status("Speaking...", "#00FF7F")
-                tts_provider.speak(response)
+                tts_provider.speak(spoken_response)
+                print("✅ Cycle complete. Session active.")
+                
+                # Update session state
+                active_session = True
+                last_interaction_time = time.time()
 
 if __name__ == "__main__":
-    app = MuskanUI()
+    app = MuskanUI()        
     app.start_listening_thread()
     app.mainloop()

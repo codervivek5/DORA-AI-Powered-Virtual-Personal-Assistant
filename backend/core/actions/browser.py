@@ -1,19 +1,20 @@
 # core/actions/browser.py
 import webbrowser
+import urllib.parse
 
 class BrowserActions:
-    def open_url(self, url: str):
-        webbrowser.open(url)
-        return f"Opening {url}"
+    """Web browsing actions for Muskan"""
 
-    def search_google(self, query: str):
-        url = f"https://www.google.com/search?q={query}"
+    def google_search(self, query: str):
+        """Search Google in the default browser"""
+        url = f"https://www.google.com/search?q={urllib.parse.quote(query)}"
         webbrowser.open(url)
-        return f"Searching Google for {query}"
+        return True
 
-    def play_on_youtube(self, search_term: str):
-        url = f"https://www.youtube.com/results?search_query={search_term}"
+    def play_youtube(self, topic: str):
+        """Search and play a video on YouTube"""
+        url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(topic)}"
         webbrowser.open(url)
-        return f"Looking for {search_term} on YouTube"
+        return True
 
 browser_actions = BrowserActions()

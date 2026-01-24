@@ -1,5 +1,5 @@
 # config/settings.py
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 from typing import Optional
 
 class Settings(BaseSettings):
@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     
     # STT Settings
-    USE_LOCAL_STT: bool = True
-    STT_PROVIDER: str = "whisper"  # "whisper" or "google" (fallback)
+    USE_LOCAL_STT: bool = False
+    STT_PROVIDER: str = "google"  # "whisper" or "google" (fallback)
     WHISPER_MODEL: str = "base"  # "tiny", "base", "small", "medium", "large"
     WHISPER_DEVICE: str = "cpu"  # "cpu" or "cuda"
     
@@ -21,8 +21,10 @@ class Settings(BaseSettings):
     PIPER_VOICE: str = "en_US-lessac-medium"  # Default voice
     PIPER_MODEL_PATH: Optional[str] = None  # Auto-download if None
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": False,
+        "extra": "ignore"
+    }
 
 settings = Settings()

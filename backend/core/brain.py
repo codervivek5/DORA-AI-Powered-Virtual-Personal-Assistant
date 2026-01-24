@@ -1,6 +1,8 @@
 # core/brain.py
 import requests
 import json
+import time
+from datetime import datetime
 from typing import Optional, List, Dict
 from config.settings import settings
 
@@ -13,25 +15,34 @@ class MuskanBrain:
         self.conversation_history: List[Dict[str, str]] = []
         
         # System prompt for Muskan
-        self.system_prompt = """You are Muskan, a super-intelligent AI assistant for macOS.You have the ability to control this computer. 
+        self.system_prompt = """You are Muskan, a helpful AI personal assistant for macOS. 
+        Your goal is to help the user with tasks, information, and controlling their Mac.
 
-        If the user asks you to do something, respond in this format:
+        Always respond in this exact format:
         ACTION: [action_name] PARAM: [value]
-        RESPONSE: [Natural language response to the user]
+        RESPONSE: [Natural language response to the user in the language they used]
 
-        Available Actions:
-        - OPEN_APP (e.g., "Safari", "Spotify")
-        - SEARCH_GOOGLE (query)
-        - SET_VOLUME (0-100)
-        - EMPTY_TRASH
-        - PLAY_YOUTUBE (topic)
+        If no action is needed, leave the ACTION line blank or omit it.
+        Supported Actions:
+        - OPEN_APP: Name of the application to open (e.g., Safari, Music, Notes)
+        - SEARCH_GOOGLE: Search query for information.
+        - SET_VOLUME: Level from 0 to 100.
+        - EMPTY_TRASH: No parameters.
+        - PLAY_YOUTUBE: Name of song or topic.
 
-        Example:
-        User: "Muskan, open Safari and search for weather."
-        Muskan: 
+        Example 1:
+        User: "Open Safari"
+        Muskan:
         ACTION: OPEN_APP PARAM: Safari
-        ACTION: SEARCH_GOOGLE PARAM: weather
-        RESPONSE: I've opened Safari and searched for the weather for you.
+        RESPONSE: I've opened Safari for you.
+
+        Example 2:
+        User: "How's the weather?"
+        Muskan:
+        ACTION: SEARCH_GOOGLE PARAM: current weather
+        RESPONSE: Let me check that for you. I'm opening a Google search for the current weather.
+
+        Be concise and friendly. If a user asks a question, answer it directly in the RESPONSE section.
         """
     
     def _call_ollama(self, prompt: str, stream: bool = False) -> str:
@@ -41,8 +52,12 @@ class MuskanBrain:
         # Build messages with system prompt and conversation history
         messages = []
         
+        # Add current context (Time/Date)
+        current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        context_prompt = f"\n[CURRENT CONTEXT]\nLocal Time: {current_time_str}\n\n"
+        
         # Add system prompt as first message
-        messages.append({"role": "system", "content": self.system_prompt})
+        messages.append({"role": "system", "content": self.system_prompt + context_prompt})
         
         # Add conversation history (last 10 exchanges to keep context manageable)
         for msg in self.conversation_history[-10:]:
