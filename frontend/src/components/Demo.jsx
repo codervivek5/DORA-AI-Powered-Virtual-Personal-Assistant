@@ -5,7 +5,7 @@ import ChatWindow from './ChatWindow';
 import AccessibilityTester from './AccessibilityTester';
 
 /**
- * Demo Component - Demonstrates the refactored Muskan AI Chat Interface
+ * Demo Component - Demonstrates the refactored Muse AI Chat Interface
  * 
  * This component showcases:
  * - Modular component architecture
@@ -28,7 +28,7 @@ const Demo = () => {
     <div className="min-h-screen">
       {/* Accessibility announcement for screen readers */}
       <div className="sr-only" aria-live="polite">
-        Muskan AI Chat Interface loaded. Use Tab to navigate, Enter to send messages, and Escape to clear input.
+        Muse AI Chat Interface loaded. Use Tab to navigate, Enter to send messages, and Escape to clear input.
       </div>
 
       {/* Main chat interface */}

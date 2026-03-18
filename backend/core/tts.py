@@ -1,239 +1,193 @@
-# core/tts.py
-"""
-Text-to-Speech module using free, local TTS providers
-Primary: Piper (fast, high-quality)
-Fallback: pyttsx3 (system TTS)
-"""
-import pyaudio
-import subprocess
 import os
+import wave
 import tempfile
-from pathlib import Path
-from typing import Optional
+import warnings
+import sounddevice as sd
+import numpy as np
+import requests
+import base64
+from typing import Tuple, Optional, Any
+from loguru import logger
 from config.settings import settings
 
-# Try to import pyttsx3 for fallback
+# Try to import Sarvam AI SDK
 try:
-    import pyttsx3
-    PYTTSX3_AVAILABLE = True
+    from sarvamai import SarvamAI
+    SARVAM_SDK_AVAILABLE = True
 except ImportError:
-    PYTTSX3_AVAILABLE = False
+    SARVAM_SDK_AVAILABLE = False
 
-SAMPLE_RATE = 22050  # Piper default sample rate
-CHANNELS = 1
-FORMAT = pyaudio.paInt16
+# Suppress verbose warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 class TTSProvider:
-    """Text-to-Speech provider with Piper and fallback support"""
-    
+    """TTS Provider supporting multiple engines (Sarvam AI, F5, etc.)"""
+
     def __init__(self):
-        self.provider = settings.TTS_PROVIDER
-        self.voice = settings.PIPER_VOICE
-        self.model_path = settings.PIPER_MODEL_PATH
-        self.pyttsx3_engine = None
+        self.provider = settings.TTS_PROVIDER.lower()
+        self.api_key = settings.SARVAM_API_KEY or os.getenv("SARVAM_API_KEY")
         
-        if PYTTSX3_AVAILABLE:
+        # Initialize Sarvam Client if available
+        self.sarvam_client: Any = None
+        if self.provider == "sarvam" and SARVAM_SDK_AVAILABLE and self.api_key:
             try:
-                self.pyttsx3_engine = pyttsx3.init()
-                # Set properties for better quality
-                self.pyttsx3_engine.setProperty('rate', 150)
-                self.pyttsx3_engine.setProperty('volume', 0.9)
+                # Based on the error "'TextToSpeechClient' object is not callable", 
+                # let's be careful with how we use it.
+                self.sarvam_client = SarvamAI(api_subscription_key=self.api_key)
+                logger.info("Sarvam SDK initialized")
             except Exception as e:
-                print(f"Warning: Could not initialize pyttsx3: {e}")
-    
-    def _get_piper_path(self) -> Optional[str]:
-        """Try to find piper executable"""
-        # Check common locations
-        possible_paths = [
-            "piper",
-            "/usr/local/bin/piper",
-            os.path.expanduser("~/.local/bin/piper"),
-        ]
-        
-        for path in possible_paths:
-            if os.path.exists(path) or self._check_command_exists(path):
-                return path
-        
-        return None
-    
-    def _check_command_exists(self, cmd: str) -> bool:
-        """Check if command exists in PATH"""
+                logger.warning(f"Failed to initialize Sarvam SDK: {e}. Will use REST API fallback.")
+
+        logger.info(f"🔊 TTS Provider initialized: {self.provider.upper()}")
+
+    def _get_audio_sarvam(self, text: str) -> Tuple[Optional[np.ndarray], int]:
+        """Fetch audio from Sarvam AI TTS (v1 or v2/SDK)"""
+        if not self.api_key:
+            logger.error("SARVAM_API_KEY not set")
+            return None, 16000
+
+        # Try SDK first if available
+        if self.sarvam_client is not None:
+            try:
+                response = self.sarvam_client.text_to_speech.convert(
+                    text=text,
+                    target_language_code="hi-IN"
+                )
+                
+                audio_bytes = None
+                if isinstance(response, dict):
+                    audio_base64 = response.get("audios", [None])[0] or response.get("audio")
+                    if audio_base64:
+                        audio_bytes = base64.b64decode(audio_base64)
+                elif hasattr(response, "audios") and response.audios:
+                    # Some SDK versions return a list of base64 strings or bytes
+                    audio_val = response.audios[0]
+                    audio_bytes = base64.b64decode(audio_val) if isinstance(audio_val, str) else audio_val
+                elif hasattr(response, "audio"):
+                    audio_val = response.audio
+                    audio_bytes = base64.b64decode(audio_val) if isinstance(audio_val, str) else audio_val
+                
+                if audio_bytes and isinstance(audio_bytes, (bytes, bytearray)):
+                    return self._bytes_to_audio_data(audio_bytes)
+                else:
+                    logger.warning(f"Unexpected SDK response type: {type(response)}. Trying REST API...")
+            except Exception as e:
+                logger.warning(f"Sarvam SDK call failed: {e}. Trying REST API fallback...")
+
+        # REST API Fallback (v3/v2)
+        url = "https://api.sarvam.ai/text-to-speech"
+        payload = {
+            "inputs": [text],
+            "target_language_code": "hi-IN",
+            "speaker_gender": settings.SARVAM_VOICE,
+            "model": settings.SARVAM_MODEL
+        }
+        headers = {
+            "api-subscription-key": self.api_key,
+            "Content-Type": "application/json"
+        }
+
         try:
-            subprocess.run(
-                [cmd, "--version"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=2
-            )
-            return True
-        except:
-            return False
-    
-    def _get_piper_model_path(self) -> str:
-        """Get or download Piper model path"""
-        if self.model_path and os.path.exists(self.model_path):
-            return self.model_path
-        
-        # Default model path in user's home directory
-        home = Path.home()
-        model_dir = home / ".local" / "share" / "piper" / "voices"
-        model_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Default voice: en_US-lessac-medium
-        model_file = model_dir / f"{self.voice}.onnx"
-        
-        if not model_file.exists():
-            print(f"⚠️  Piper model not found at {model_file}")
-            print(f"Please download it manually or install piper-tts:")
-            print(f"  pip install piper-tts")
-            print(f"  python -m piper.download {self.voice}")
-            return None
-        
-        return str(model_file)
-    
-    def speak_with_piper(self, text: str) -> bool:
-        """Use Piper TTS to speak text"""
-        piper_path = self._get_piper_path()
-        if not piper_path:
-            print("⚠️  Piper not found. Install from: https://github.com/rhasspy/piper")
-            return False
-        
-        model_path = self._get_piper_model_path()
-        if not model_path:
-            return False
-        
-        try:
-            # Use piper to generate audio
-            process = subprocess.Popen(
-                [
-                    piper_path,
-                    "--model", model_path,
-                    "--output_file", "-",  # Output to stdout
-                ],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
-            )
-            
-            # Send text and get audio
-            stdout, stderr = process.communicate(input=text.encode(), timeout=10)
-            
-            if process.returncode != 0:
-                print(f"Piper error: {stderr.decode()}")
-                return False
-            
-            # Play audio using pyaudio
-            self._play_audio_data(stdout)
-            return True
-            
-        except subprocess.TimeoutExpired:
-            print("Piper TTS timeout")
-            return False
+            response = requests.post(url, json=payload, headers=headers)
+            if response.status_code == 200:
+                data = response.json()
+                audio_base64 = data.get("audios", [None])[0] or data.get("audio")
+                if audio_base64:
+                    audio_bytes = base64.b64decode(audio_base64)
+                    return self._bytes_to_audio_data(audio_bytes)
+            else:
+                logger.error(f"Sarvam API error {response.status_code}: {response.text}")
         except Exception as e:
-            print(f"Piper TTS error: {e}")
-            return False
-    
-    def speak_with_pyttsx3(self, text: str) -> bool:
-        """Use pyttsx3 (system TTS) as fallback"""
-        if not PYTTSX3_AVAILABLE or not self.pyttsx3_engine:
-            return False
+            logger.error(f"Sarvam REST API error: {e}")
         
+        return None, 16000
+
+    def _bytes_to_audio_data(self, audio_bytes: Any) -> Tuple[Optional[np.ndarray], int]:
+        """Convert wav bytes to numpy float array and detect sample rate"""
         try:
-            self.pyttsx3_engine.say(text)
-            self.pyttsx3_engine.runAndWait()
-            return True
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
+                tmp_file.write(audio_bytes)
+                tmp_path = tmp_file.name
+
+            try:
+                with wave.open(tmp_path, 'rb') as wav_file:
+                    n_channels = wav_file.getnchannels()
+                    sample_width = wav_file.getsampwidth()
+                    sample_rate = wav_file.getframerate()
+                    frames = wav_file.readframes(wav_file.getnframes())
+                    
+                    if sample_width == 2:
+                        audio_data = np.frombuffer(frames, dtype=np.int16).astype('float32') / 32768.0
+                    else:
+                        audio_data = np.frombuffer(frames, dtype=np.uint8).astype('float32') / 255.0
+                    
+                    if n_channels > 1:
+                        audio_data = audio_data.reshape(-1, n_channels).mean(axis=1)
+                    
+                    return audio_data, sample_rate
+            except Exception as inner_e:
+                logger.error(f"Wave opening error: {inner_e}")
+                return None, 16000
+            finally:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+                    
         except Exception as e:
-            print(f"pyttsx3 error: {e}")
-            return False
-    
-    def _play_audio_data(self, audio_data: bytes):
-        """Play raw audio data using pyaudio"""
-        pa = pyaudio.PyAudio()
-        
-        try:
-            stream = pa.open(
-                format=FORMAT,
-                channels=CHANNELS,
-                rate=SAMPLE_RATE,
-                output=True
-            )
-            
-            # Write audio data in chunks
-            chunk_size = 1024
-            for i in range(0, len(audio_data), chunk_size):
-                chunk = audio_data[i:i + chunk_size]
-                stream.write(chunk)
-            
-            stream.stop_stream()
-            stream.close()
-            
-        except Exception as e:
-            print(f"Audio playback error: {e}")
-        finally:
-            pa.terminate()
-    
+            logger.error(f"Error converting bytes to audio: {e}")
+            return None, 16000
+
     def speak(self, text: str) -> bool:
-        """
-        Main method to speak text using available TTS provider
-        
-        Args:
-            text: Text to speak
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        if not text or not isinstance(text, str) or not text.strip():
-            print("Error: text parameter must be a non-empty string")
+        if not text or not text.strip():
             return False
-        
-        # Try primary provider first
-        if self.provider == "piper":
-            if self.speak_with_piper(text):
+
+        try:
+            logger.info(f"🎤 Generating speech: {text[:50]}...")
+
+            audio_data = None
+            sample_rate = 16000 # Default fallback
+
+            if self.provider == "sarvam":
+                audio_data, sample_rate = self._get_audio_sarvam(text)
+            elif self.provider == "f5":
+                logger.warning("F5-TTS local provider not fully implemented. Falling back to simple console print.")
+                print(f"🔊 AI: {text}")
                 return True
-            # Fallback to pyttsx3 if piper fails
-            print("Falling back to pyttsx3...")
-            return self.speak_with_pyttsx3(text)
-        
-        elif self.provider == "pyttsx3":
-            if self.speak_with_pyttsx3(text):
+            else:
+                logger.error(f"Unsupported TTS provider: {self.provider}")
+                return False
+
+            if audio_data is None:
+                logger.error("Failed to generate audio data")
+                return False
+
+            # Normalize
+            max_val = np.max(np.abs(audio_data))
+            if max_val > 1.0:
+                audio_data = audio_data / max_val
+            elif max_val == 0:
+                return False
+
+            # Play
+            try:
+                sd.play(audio_data, samplerate=sample_rate)
+                sd.wait()
+                logger.success("Playback completed")
                 return True
-            # Fallback to piper if pyttsx3 fails
-            print("Falling back to Piper...")
-            return self.speak_with_piper(text)
-        
-        return False
+            except Exception as e:
+                logger.error(f"Playback error: {e}")
+                return False
+
+        except Exception as e:
+            logger.error(f"TTS Error: {e}")
+            return False
 
 
-# Global TTS instance
+# Global instance
 tts_provider = TTSProvider()
 
-
-def play_streaming_audio(text: Optional[str] = None):
-    """
-    Play audio from text (maintains compatibility with old API)
-    
-    Args:
-        text: Text to convert to speech
-    """
-    if text:
-        tts_provider.speak(text)
-    else:
-        print("Error: text parameter is required")
-
-
 if __name__ == "__main__":
-    # Test TTS
-    print("Testing TTS providers...")
-    
-    test_text = "Hello! I am Muskan, your AI-powered virtual personal assistant."
-    
-    print(f"\nSpeaking: '{test_text}'")
-    success = tts_provider.speak(test_text)
-    
-    if success:
-        print("✅ TTS test successful!")
-    else:
-        print("❌ TTS test failed. Please check your TTS setup.")
-
-
+    import sys
+    test_text = "नमस्ते, मैं आपकी कैसे मदद कर सकता हूँ?" if len(sys.argv) < 2 else sys.argv[1]
+    tts_provider.speak(test_text)

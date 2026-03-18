@@ -3,7 +3,7 @@ import os
 import subprocess
 
 class SystemActions:
-    """Muskan's hands - System level controls for macOS"""
+    """Muse's hands - System level controls for macOS"""
 
     def execute_applescript(self, script: str):
         """Helper to run AppleScript commands"""

@@ -4,19 +4,21 @@ fastapi
 uvicorn[standard]
 pydantic
 python-multipart
-aiofiles
-SpeechRecognition  # Fallback STT provider
 pydub
-pyttsx3  # Fallback TTS provider
 pyautogui
 pywinauto
 pyaudio
 sounddevice
 psutil
-requests  # For Ollama API calls
-faster-whisper  # Primary STT provider (Whisper)
+requests  # For API calls (Samrvadam AI TTS)
+pvporcupine  # Wake word detection
+pywhispercpp  # Ultra-fast local Whisper via whisper.cpp
 transformers  # Optional, for local LLM helpers
 sentence-transformers  # Optional, for RAG embeddings
 customtkinter
 openwakeword
 numpy
+scipy
+httpx
+sarvamai
+loguru

@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Muskan AI - Your AI-Powered Virtual Personal Assistant",
-  description: "Muskan AI is an intelligent virtual personal assistant designed to streamline your daily tasks, manage your schedule, and help you stay organized effortlessly.",
+  title: "Muse AI - Your AI-Powered Virtual Personal Assistant",
+  description: "Muse AI is an intelligent virtual personal assistant designed to streamline your daily tasks, manage your schedule, and help you stay organized effortlessly.",
   manifest: "/favicon/site.webmanifest",
 };
 

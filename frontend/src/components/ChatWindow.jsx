@@ -6,7 +6,7 @@ import UserInput from "./UserInput";
 import VoiceToggleButton from "./VoiceToggleButton";
 import { motion } from "framer-motion";
 /**
- * ChatWindow - Main chat interface component for Muskan AI
+ * ChatWindow - Main chat interface component for Muse AI
  *
  * Enhanced Accessibility Features:
  * - Comprehensive ARIA landmarks and labels
@@ -30,7 +30,7 @@ const ChatWindow = () => {
       id: 1,
       type: "assistant",
       content:
-        "Hello! I'm Muskan, your AI-powered virtual personal assistant. How can I help you today?",
+        "Hello! I'm Muse, your AI-powered virtual personal assistant. How can I help you today?",
       timestamp: new Date(),
     },
   ]);
@@ -48,7 +48,7 @@ const ChatWindow = () => {
     if (messages.length > 1) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage.type === "assistant") {
-        setAnnounceMessage(`Muskan responded: ${lastMessage.content}`);
+        setAnnounceMessage(`Muse responded: ${lastMessage.content}`);
         setTimeout(() => setAnnounceMessage(""), 100);
       }
     }
@@ -97,7 +97,7 @@ const ChatWindow = () => {
       const aiResponse = {
         id: Date.now() + 1,
         type: "assistant",
-        content: `I understand you said: "${content.trim()}". This is a simulated response from Muskan AI. In a real implementation, this would connect to your AI backend.`,
+        content: `I understand you said: "${content.trim()}". This is a simulated response from Muse AI. In a real implementation, this would connect to your AI backend.`,
         timestamp: new Date(),
       };
 
@@ -109,9 +109,100 @@ const ChatWindow = () => {
     }
   };
 
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/wav' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64Audio = reader.result.split(',')[1];
+          await sendAudioToBackend(base64Audio);
+        };
+
+        console.log("Recording stopped, tracks stopping...");
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsVoiceActive(true);
+      console.log("Recording started...");
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      setIsVoiceActive(false);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      setIsVoiceActive(false);
+    }
+  };
+
+  const sendAudioToBackend = async (base64Audio) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:8000/voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audio_data: base64Audio, language: 'en-US' }),
+      });
+
+      if (!response.ok) throw new Error('Voice API failed');
+
+      const data = await response.json();
+
+      if (data.transcript) {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          type: 'user',
+          content: data.transcript,
+          timestamp: new Date()
+        }]);
+      }
+
+      if (data.response) {
+        setMessages(prev => [...prev, {
+          id: Date.now() + 1,
+          type: 'assistant',
+          content: data.response,
+          timestamp: new Date()
+        }]);
+      }
+    } catch (err) {
+      console.error("Voice processing error:", err);
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        type: 'assistant',
+        content: "Sorry, I had trouble processing your voice message.",
+        timestamp: new Date()
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleVoiceToggle = () => {
-    setIsVoiceActive(!isVoiceActive);
-    // Voice functionality would be implemented here
+    if (isVoiceActive) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
   };
 
   const containerVariants = {
@@ -180,7 +271,7 @@ const ChatWindow = () => {
         id="main-content"
         className="flex flex-col h-screen max-h-screen glass-chat-container rounded-lg m-4"
         role="main"
-        aria-label="Muskan AI Chat Interface"
+        aria-label="Muse AI Chat Interface"
       >
         {/* Top Bar */}
         <header className="flex items-center justify-between p-4 header-glass rounded-t-lg">
@@ -209,7 +300,7 @@ const ChatWindow = () => {
                 variants={childVariants}
                 className="text-lg font-semibold text-high-contrast"
               >
-                Muskan AI
+                Muse AI
               </motion.h1>
 
               <motion.p
@@ -241,7 +332,7 @@ const ChatWindow = () => {
                   className="space-y-4"
                 >
                   <h2 className="text-4xl font-bold text-high-contrast">
-                    Introducing Muskan AI
+                    Introducing Muse AI
                   </h2>
                   <p className="text-lg text-medium-contrast leading-relaxed">
                     Your intelligent virtual personal assistant designed to
@@ -352,6 +443,7 @@ const ChatWindow = () => {
               onSendMessage={handleSendMessage}
               isLoading={isLoading}
               isVoiceActive={isVoiceActive}
+              onVoiceToggle={handleVoiceToggle}
             />
           </div>
         </div>

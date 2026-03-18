@@ -55,7 +55,7 @@ const ChatBubble = ({ message, messageIndex = 1, totalMessages = 1 }) => {
         "flex w-full py-4",
         isUser ? "justify-end" : "justify-start"
       )}
-      aria-label={`Message ${messageIndex} of ${totalMessages} from ${isUser ? 'you' : 'Muskan'}`}
+      aria-label={`Message ${messageIndex} of ${totalMessages} from ${isUser ? 'you' : 'Muse'}`}
     >
       <div
         className={cn(
@@ -72,7 +72,7 @@ const ChatBubble = ({ message, messageIndex = 1, totalMessages = 1 }) => {
         tabIndex={0}
         role="article"
         aria-describedby={`message-time-${message.id} message-actions-${message.id}`}
-        aria-label={`${isUser ? 'Your' : 'Muskan\'s'} message: ${message.content.substring(0, 50)}${message.content.length > 50 ? '...' : ''}`}
+        aria-label={`${isUser ? 'Your' : 'Muse\'s'} message: ${message.content.substring(0, 50)}${message.content.length > 50 ? '...' : ''}`}
         onKeyDown={handleKeyDown}
         onClick={handleCopyMessage}
         title="Click to copy message (Ctrl+C)"
@@ -106,7 +106,7 @@ const ChatBubble = ({ message, messageIndex = 1, totalMessages = 1 }) => {
         </div>
 
         <span className="sr-only">
-          {isUser ? 'Your message' : 'Muskan assistant message'}. Press Ctrl+C to copy this message.
+          {isUser ? 'Your message' : 'Muse assistant message'}. Press Ctrl+C to copy this message.
         </span>
       </div>
     </div>

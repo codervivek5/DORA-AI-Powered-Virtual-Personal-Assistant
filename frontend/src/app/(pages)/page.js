@@ -3,7 +3,7 @@ import React from 'react';
 import ChatWindow from '@/components/ChatWindow';
 
 /**
- * Main HomePage component that renders the Muskan AI chat interface
+ * Main HomePage component that renders the Muse AI chat interface
  * 
  * This component serves as the entry point for the chat application
  * and provides the main layout structure.

@@ -1,5 +1,5 @@
 /**
- * Muskan AI Chat Interface - Component Demonstration
+ * Muse AI Chat Interface - Component Demonstration
  * 
  * This file demonstrates the fully refactored UserInput component
  * with all accessibility enhancements and responsive design features.
@@ -65,7 +65,7 @@ const UserInputDemo = () => {
     <div className="min-h-screen bg-background p-4">
       {/* Accessibility Instructions */}
       <div className="max-w-4xl mx-auto mb-8">
-        <h1 className="text-2xl font-bold mb-4">Muskan AI - Accessible Chat Interface Demo</h1>
+        <h1 className="text-2xl font-bold mb-4">Muse AI - Accessible Chat Interface Demo</h1>
 
         <div className="bg-card border border-border rounded-lg p-6 mb-6">
           <h2 className="text-lg font-semibold mb-3">Accessibility Features Demonstrated</h2>
@@ -115,11 +115,11 @@ const UserInputDemo = () => {
                 >
                   <div
                     className={`max-w-[80%] rounded-lg px-4 py-2 ${message.type === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-foreground'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-foreground'
                       }`}
                     role="article"
-                    aria-label={`${message.type === 'user' ? 'Your' : 'Muskan\'s'} message`}
+                    aria-label={`${message.type === 'user' ? 'Your' : 'Muse\'s'} message`}
                     tabIndex={0}
                   >
                     <div className="text-sm">{message.content}</div>
@@ -141,7 +141,7 @@ const UserInputDemo = () => {
                     <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                     <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
-                  <span className="sr-only">Muskan is typing...</span>
+                  <span className="sr-only">Muse is typing...</span>
                 </div>
               </div>
             </div>
@@ -192,7 +192,7 @@ const UserInputDemo = () => {
 
       {/* Live Region for Announcements */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
-        {isLoading && "Muskan is typing a response..."}
+        {isLoading && "Muse is typing a response..."}
       </div>
     </div>
   );

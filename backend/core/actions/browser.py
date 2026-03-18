@@ -3,7 +3,7 @@ import webbrowser
 import urllib.parse
 
 class BrowserActions:
-    """Web browsing actions for Muskan"""
+    """Web browsing actions for Muse"""
 
     def google_search(self, query: str):
         """Search Google in the default browser"""

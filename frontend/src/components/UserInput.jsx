@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Send, Mic, MicOff, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
-const UserInput = React.forwardRef(({ onSendMessage, isLoading, isVoiceActive }, ref) => {
+const UserInput = React.forwardRef(({ onSendMessage, isLoading, isVoiceActive, onVoiceToggle }, ref) => {
   const [inputValue, setInputValue] = useState('');
   const [isComposing, setIsComposing] = useState(false);
   const inputRef = useRef(null);
@@ -50,8 +50,9 @@ const UserInput = React.forwardRef(({ onSendMessage, isLoading, isVoiceActive },
   };
 
   const handleVoiceToggle = () => {
-    // Voice toggle functionality
-    console.log('Voice toggle clicked');
+    if (onVoiceToggle) {
+      onVoiceToggle();
+    }
   };
 
   const handleAttachment = () => {
@@ -191,7 +192,7 @@ const UserInput = React.forwardRef(({ onSendMessage, isLoading, isVoiceActive },
         )}
         {isLoading && (
           <div className="sr-only" aria-live="polite">
-            Muskan is typing a response...
+            Muse is typing a response...
           </div>
         )}
       </form>

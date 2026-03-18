@@ -1,176 +1,171 @@
-# core/brain.py
-import requests
+import httpx
+import re
 import json
-import time
+import os
 from datetime import datetime
-from typing import Optional, List, Dict
+from typing import List, Dict, Any
 from config.settings import settings
 
-class MuskanBrain:
-    """Main brain module for Muskan AI assistant using Ollama"""
-    
+
+class MuseBrain:
+    """
+    Muse Brain: Features persistent storage, context pruning for speed,
+    and structured regex parsing for macOS automation.
+    """
+
     def __init__(self):
         self.base_url = settings.OLLAMA_BASE_URL
         self.model = settings.OLLAMA_MODEL
-        self.conversation_history: List[Dict[str, str]] = []
         
-        # System prompt for Muskan
-        self.system_prompt = """You are Muskan, a helpful AI personal assistant for macOS. 
-        Your goal is to help the user with tasks, information, and controlling their Mac.
+        # Absolute path to backend/chat_history/chat_history.json
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.memory_file = os.path.join(base_dir, "chat_history", "chat_history.json")
+        
+        self.system_prompt = settings.SYSTEM_PROMPT
 
-        Always respond in this exact format:
-        ACTION: [action_name] PARAM: [value]
-        RESPONSE: [Natural language response to the user in the language they used]
+        # Load long-term memory
+        self.conversation_history = self._load_memory()
 
-        If no action is needed, leave the ACTION line blank or omit it.
-        Supported Actions:
-        - OPEN_APP: Name of the application to open (e.g., Safari, Music, Notes)
-        - SEARCH_GOOGLE: Search query for information.
-        - SET_VOLUME: Level from 0 to 100.
-        - EMPTY_TRASH: No parameters.
-        - PLAY_YOUTUBE: Name of song or topic.
+    def _load_memory(self) -> List[Dict[str, str]]:
+        """Reads chat history from disk."""
+        if os.path.exists(self.memory_file):
+            try:
+                with open(self.memory_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return data if isinstance(data, list) else []
+            except (json.JSONDecodeError, Exception) as e:
+                print(f"⚠️ Memory load error: {e}. Starting fresh.")
+                return []
+        return []
 
-        Example 1:
-        User: "Open Safari"
-        Muskan:
-        ACTION: OPEN_APP PARAM: Safari
-        RESPONSE: I've opened Safari for you.
-
-        Example 2:
-        User: "How's the weather?"
-        Muskan:
-        ACTION: SEARCH_GOOGLE PARAM: current weather
-        RESPONSE: Let me check that for you. I'm opening a Google search for the current weather.
-
-        Be concise and friendly. If a user asks a question, answer it directly in the RESPONSE section.
-        """
-    
-    def _call_ollama(self, prompt: str, stream: bool = False) -> str:
-        """Call Ollama API for text generation using chat endpoint"""
-        url = f"{self.base_url}/api/chat"
-        
-        # Build messages with system prompt and conversation history
-        messages = []
-        
-        # Add current context (Time/Date)
-        current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        context_prompt = f"\n[CURRENT CONTEXT]\nLocal Time: {current_time_str}\n\n"
-        
-        # Add system prompt as first message
-        messages.append({"role": "system", "content": self.system_prompt + context_prompt})
-        
-        # Add conversation history (last 10 exchanges to keep context manageable)
-        for msg in self.conversation_history[-10:]:
-            messages.append(msg)
-        
-        # Add current user prompt
-        messages.append({"role": "user", "content": prompt})
-        
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "stream": stream
-        }
-        
+    def _save_memory(self):
+        """Saves chat history to disk safely."""
         try:
-            response = requests.post(url, json=payload, timeout=60)
-            response.raise_for_status()
-            result = response.json()
-            return result.get("message", {}).get("content", "")
-        except requests.exceptions.ConnectionError:
-            raise ConnectionError(
-                f"Cannot connect to Ollama at {self.base_url}. "
-                "Please ensure Ollama is running. Install from https://ollama.ai"
-            )
-        except requests.exceptions.Timeout:
-            raise TimeoutError("Ollama request timed out. The model might be loading.")
+            # Atomic save: Write to temp first then rename to prevent corruption
+            temp_file = f"{self.memory_file}.tmp"
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                json.dump(self.conversation_history, f, ensure_ascii=False, indent=4)
+            os.replace(temp_file, self.memory_file)
         except Exception as e:
-            raise Exception(f"Error calling Ollama: {str(e)}")
-    
-    def chat(self, user_message: str) -> str:
+            print(f"⚠️ Memory save error: {e}")
+
+    def _parse_structured_response(self, raw_text: str) -> Dict[str, Any]:
         """
-        Process user message and generate AI response
-        
-        Args:
-            user_message: User's input text
-            
-        Returns:
-            AI assistant response
+        Extracts the Action, Param, and Response components.
+        Uses re.DOTALL to capture multi-line friendly responses.
+        """
+        # Patterns look for "ACTION: OPEN_APP" etc.
+        action_match = re.search(r"ACTION:\s*(.*?)(?=\s*PARAM:|\s*RESPONSE:|$)", raw_text, re.IGNORECASE)
+        param_match = re.search(r"PARAM:\s*(.*?)(?=\s*RESPONSE:|$)", raw_text, re.IGNORECASE)
+        response_match = re.search(r"RESPONSE:\s*(.*)", raw_text, re.IGNORECASE | re.DOTALL)
+
+        # Cleanup values
+        action = action_match.group(1).strip() if action_match and action_match.group(1).strip() else None
+        param = param_match.group(1).strip() if param_match and param_match.group(1).strip() else None
+
+        # Fallback: If LLM forgets "RESPONSE:", use the whole raw text
+        friendly_text = response_match.group(1).strip() if response_match else raw_text.strip()
+
+        # Strip action tags from friendly text if they leaked in
+        friendly_text = re.sub(r"(ACTION|PARAM|RESPONSE):", "", friendly_text, flags=re.IGNORECASE).strip()
+
+        return {
+            "action": action,
+            "param": param,
+            "response": friendly_text,
+            "raw": raw_text
+        }
+
+    def chat(self, user_message: str) -> Dict[str, Any]:
+        """
+        The main intelligence loop.
+        Processes user input, updates memory, and calls Llama via Ollama.
         """
         if not user_message or not user_message.strip():
-            return "I didn't catch that. Could you please repeat?"
-        
-        # Add user message to history
-        self.conversation_history.append({
-            "role": "user",
-            "content": user_message
-        })
-        
+            return {"action": None, "param": None, "response": "I'm listening, tell me more."}
+
+        # 1. Store the user's intent
+        self.conversation_history.append({"role": "user", "content": user_message})
+
+        # 2. Add dynamic context (Time/Date)
+        now = datetime.now()
+        timestamp_ctx = f"\n\n[CONTEXT: Today is {now.strftime('%A, %B %d, %Y %I:%M %p')}]"
+
+        # 3. Create context window (Last 8 messages for speed + System Prompt)
+        context_window = [{"role": "system", "content": self.system_prompt + timestamp_ctx}]
+        context_window.extend(self.conversation_history[-8:])
+
+        payload = {
+            "model": self.model,
+            "messages": context_window,
+            "stream": False,
+            "options": {
+                "temperature": 0.6,  # Slightly lower for more reliable formatting
+                "top_p": 0.9
+            }
+        }
+
         try:
-            # Get response from Ollama
-            response = self._call_ollama(user_message)
-            
-            # Add assistant response to history
-            self.conversation_history.append({
-                "role": "assistant",
-                "content": response
-            })
-            
-            return response
-            
-        except ConnectionError as e:
-            return f"⚠️ {str(e)}"
+            with httpx.Client(timeout=45.0) as client:
+                response = client.post(f"{self.base_url}/api/chat", json=payload)
+                response.raise_for_status()
+
+                ai_content = response.json().get("message", {}).get("content", "")
+
+                # 4. Save and return parsed data
+                self.conversation_history.append({"role": "assistant", "content": ai_content})
+                self._save_memory()
+
+                return self._parse_structured_response(ai_content)
+
         except Exception as e:
-            return f"I encountered an error: {str(e)}. Please try again."
-    
+            return {
+                "action": "ERROR",
+                "param": None,
+                "response": f"I'm having trouble connecting to my core right now. ({str(e)})"
+            }
+
     def clear_history(self):
-        """Clear conversation history"""
+        """Reset Muse's memory."""
         self.conversation_history = []
-    
-    def check_ollama_connection(self) -> bool:
-        """Check if Ollama is running and accessible"""
-        try:
-            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
-            return response.status_code == 200
-        except:
-            return False
-    
-    def get_available_models(self) -> List[str]:
-        """Get list of available Ollama models"""
-        try:
-            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                return [model["name"] for model in data.get("models", [])]
-            return []
-        except:
-            return []
+        if os.path.exists(self.memory_file):
+            os.remove(self.memory_file)
+        print("🧠 Memory cleared.")
 
 
 # Global brain instance
-brain = MuskanBrain()
+brain = MuseBrain()
+
+# --- PRODUCTION TESTING BLOCK ---
 
 if __name__ == "__main__":
-    # Test the brain
-    print("Testing Muskan Brain with Ollama...")
-    
-    if brain.check_ollama_connection():
-        print("✅ Ollama is running!")
-        models = brain.get_available_models()
-        print(f"Available models: {models}")
-        
-        print("\n--- Testing chat ---")
-        test_prompts = [
-            "Hello! Who are you?",
-            "Help me search for the weather on Google.",
-            "Open Safari for me."
-        ]
-        
-        for prompt in test_prompts:
-            print(f"\nUser: {prompt}")
-            response = brain.chat(prompt) # Changed to brain.chat as process_query is not defined
-            print(f"Muskan: {response}")
-    else:
-        print("❌ Ollama is not running. Please start Ollama first.")
-        print("Install: https://ollama.ai")
-        print("Then run: ollama pull llama3.2")
+    print("--- Muse AI Brain Diagnostic ---")
+    brain = MuseBrain()
+
+    # 1. Check Connection
+    try:
+        with httpx.Client() as c:
+            check = c.get(f"{settings.OLLAMA_BASE_URL}/api/tags")
+            if check.status_code == 200:
+                print(f"✅ Ollama Connected. Model: {settings.OLLAMA_MODEL}")
+            else:
+                print("❌ Ollama responded but model not found.")
+    except Exception:
+        print("❌ Ollama is NOT running. Please start it first.")
+
+    # 2. Test Conversation & Parsing
+    print("\n--- Starting Test Conversation ---")
+    queries = [
+        "Hey Muse, how are you?",
+        "What was my friends name again?"
+    ]
+
+    for q in queries:
+        print(f"\nUSER: {q}")
+        result = brain.chat(q)
+        print(f"MUSE RESPONSE: {result['response']}")
+        if result['action']:
+            print(f"🛠️ ACTION TRIGGERED: {result['action']} with {result['param']}")
+        print("-" * 30)
+
+    print("\n✅ Diagnostic Complete. Check 'chat_history.json' for persistence.")

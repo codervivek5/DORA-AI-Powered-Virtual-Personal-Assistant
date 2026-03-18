@@ -1,5 +1,5 @@
 /**
- * Accessibility Utilities for Muskan AI Chat Interface
+ * Accessibility Utilities for Muse AI Chat Interface
  * 
  * This file contains utilities for testing and validating accessibility features
  * implemented in the chat components using axe-core and custom tests.
@@ -272,7 +272,7 @@ export const runAccessibilityTests = async () => {
 export const logAccessibilityResults = async () => {
   const results = await runAccessibilityTests();
 
-  console.group('🔍 Muskan AI Accessibility Test Results');
+  console.group('🔍 Muse AI Accessibility Test Results');
   console.log('✅ Passed:', results.passed.length);
   console.log('❌ Failed:', results.failed.length);
   console.log('⚠️ Warnings:', results.warnings.length);

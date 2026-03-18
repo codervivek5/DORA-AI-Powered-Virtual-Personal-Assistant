@@ -1,4 +1,4 @@
-Muskan/
+Muse/
 │── core/
 │   ├── stt.py               # audio → text
 │   ├── tts.py               # text → voice
@@ -10,8 +10,6 @@ Muskan/
 │   │     ├── media.py       # music control
 │   │     ├── files.py       # file operations
 │   │     ├── keyboard.py    # automate typing
-│── server/
-│   ├── api.py               # FastAPI local server
 │── ui/
 │   ├── desktop.py           # UI (Tkinter or Electron)
 │── config/

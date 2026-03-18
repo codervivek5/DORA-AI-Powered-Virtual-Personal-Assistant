@@ -21,7 +21,7 @@ const LoadingIndicator = () => {
       className="flex justify-start"
       role="status"
       aria-live="polite"
-      aria-label="Muskan is typing"
+      aria-label="Muse is typing"
     >
       <div
         className={cn(
@@ -52,7 +52,7 @@ const LoadingIndicator = () => {
 
           {/* Text for screen readers */}
           <span className="sr-only">
-            Muskan is typing a response...
+            Muse is typing a response...
           </span>
         </div>
       </div>

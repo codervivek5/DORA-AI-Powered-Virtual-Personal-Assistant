@@ -1,46 +1,68 @@
 # core/wakeword.py
+"""
+Wake word detection using Whisper.
+Multilingual support for "Muse" and its variants.
+"""
 import time
-from core.stt import transcribe_from_mic
+import os
+import pyrootutils
+from pathlib import Path
 
-class MuskanWakeWord:
-    def __init__(self, wake_word="muskan"):
+# Establish project root
+ROOT = pyrootutils.setup_root(__file__, indicator="requirements.txt")
+
+from config.settings import settings
+from core.stt import transcribe_from_mic
+from loguru import logger
+
+class WakeWordDetector:
+    def __init__(self):
         """
-        Initializes the STT-based wake word detector.
-        Handles common phonetic variations since "Muskan" can be mis-transcribed.
+        Initialize Whisper-based wake word detector.
         """
-        self.wake_word = wake_word.lower()
-        # Common ways STT might hear "Muskan"
-        self.variations = ["muskan", "muscon", "ms. kahn", "muskon", "ms kahn", "ms. khan", "muscon", "muskan"]
-        print(f"🎤 Muskan Wake Word initialized. Support variations: {self.variations}")
+        self.variants = [v.lower() for v in settings.WAKE_WORD_VARIANTS]
+        logger.info(f"🎤 Wake Word Engine: Whisper (Variants: {self.variants})")
 
     def listen(self):
         """
-        Continuously listens in short bursts and checks for the wake word.
-        Returns True when the wake word or its variations are detected.
+        Continuously listen for wake word using Whisper.
+        Returns True when any variant is detected in the transcription.
         """
-        print(f"👂 Muskan is waiting (Say '{self.wake_word}')...")
+        logger.info(f"👂 Standing by for keyword...")
         
         while True:
-            # We use a slightly shorter limit to reduce the "dead zone" time
-            # Note: While processing (transcribing), the mic is OFF. 
-            # This is why it 'skips' if you speak during that 1-2 sec window.
             try:
-                text = transcribe_from_mic(phrase_time_limit=2.5)
+                # Auto-detect language or use settings to support "Ritu" in Hindi/English
+                text = transcribe_from_mic(phrase_time_limit=2.5, language=None).strip().lower()
                 
-                if text:
-                    text_lower = text.lower()
-                    print(f"🔍 Heard: '{text_lower}'")
-                    
-                    # Check for wake word or any of its phonetic variations
-                    if any(variant in text_lower for variant in self.variations):
-                        print(f"✨ Wake word activation triggered!")
+                if not text:
+                    continue
+                
+                logger.debug(f"Wake check: '{text}'")
+                
+                # Check for any variant in the transcribed text
+                # We look for exact matches or if the variant is part of the text
+                for variant in self.variants:
+                    if variant in text:
+                        logger.info(f"✨ Wake word '{variant}' detected in: '{text}'")
                         return True
+                        
+            except KeyboardInterrupt:
+                return False
             except Exception as e:
-                print(f"⚠️ Error during wake word detection: {e}")
-                time.sleep(0.2)
+                logger.error(f"❌ Wake word error: {e}")
+                time.sleep(1) # Back off on error
+                
+    def __del__(self):
+        """Cleanup resources if any"""
+        pass
 
-# Simple test
+# Global wake word detector
+wake_word_detector = WakeWordDetector()
+
 if __name__ == "__main__":
-    detector = MuskanWakeWord()
-    if detector.listen():
-        print("Success: Muskan is now awake!")
+    print("Testing Whisper wake word detection...")
+    print(f"Say one of {settings.WAKE_WORD_VARIANTS} to trigger...")
+    detected = wake_word_detector.listen()
+    if detected:
+        print("✅ Wake word detected successfully!")

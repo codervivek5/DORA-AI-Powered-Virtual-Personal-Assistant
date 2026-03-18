@@ -84,7 +84,7 @@ const MessageList = ({ messages, isLoading }) => {
           role="status"
           aria-label="No messages yet"
         >
-          <p>No messages yet. Start a conversation with Muskan!</p>
+          <p>No messages yet. Start a conversation with Muse!</p>
         </div>
       )}
     </motion.div>

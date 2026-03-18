@@ -4,9 +4,11 @@ from pydantic import BaseModel
 from typing import List, Optional
 import uvicorn
 from datetime import datetime
+import  os
+import  sys
 import json
 
-# Import Muskan core modules
+# Import Ritu core modules
 from core.brain import brain
 from core.stt import stt_provider
 from core.tts import tts_provider
@@ -14,8 +16,8 @@ from config.settings import settings
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="DORA AI - Virtual Personal Assistant API",
-    description="AI-powered virtual personal assistant with chat, voice, and task management capabilities",
+    title="Ritu AI - Virtual Personal Assistant API",
+    description="Ritu AI-powered virtual personal assistant with chat, voice, and task management capabilities",
     version="1.0.0"
 )
 
@@ -57,7 +59,7 @@ tasks = []
 async def root():
     """Root endpoint with API information"""
     return {
-        "message": "Muskan AI - Virtual Personal Assistant API",
+        "message": "Ritu AI - Virtual Personal Assistant API",
         "version": "1.0.0",
         "status": "running",
         "endpoints": {
@@ -77,7 +79,7 @@ async def health_check():
 async def chat_endpoint(message: ChatMessage):
     """
     Chat endpoint for processing user messages and generating AI responses
-    Uses Muskan Brain (Ollama) for intelligent responses
+    Uses Ritu Brain (Ollama) for intelligent responses
     """
     try:
         # Add user message to history
@@ -88,7 +90,7 @@ async def chat_endpoint(message: ChatMessage):
         }
         chat_history.append(user_msg)
         
-        # Use Muskan Brain for AI processing
+        # Use Lajvanti Brain for AI processing
         ai_response = brain.chat(message.content)
         
         # Create response
@@ -137,12 +139,7 @@ async def voice_endpoint(request: VoiceRequest):
         
         try:
             # Transcribe audio using STT provider
-            transcript = stt_provider.transcribe_with_whisper(temp_file_path)
-            if not transcript:
-                transcript = stt_provider.transcribe_with_google(
-                    temp_file_path, 
-                    language=request.language
-                )
+            transcript = stt_provider.transcribe(temp_file_path, language=request.language)
             
             if not transcript:
                 return {

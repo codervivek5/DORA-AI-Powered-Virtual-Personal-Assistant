@@ -2,7 +2,7 @@
 import subprocess
 
 class AppActions:
-    """App management actions for Muskan on macOS"""
+    """App management actions for Muse on macOS"""
 
     def open_app(self, app_name: str):
         """Open a macOS application"""
