@@ -67,7 +67,12 @@ class MuseBrain:
         friendly_text = response_match.group(1).strip() if response_match else raw_text.strip()
 
         # Strip action tags from friendly text if they leaked in
-        friendly_text = re.sub(r"(ACTION|PARAM|RESPONSE):", "", friendly_text, flags=re.IGNORECASE).strip()
+        # We strip both standard tags and ALL supported action names
+        standard_tags = ["ACTION", "PARAM", "RESPONSE"]
+        supported_actions = ["OPEN_APP", "SEARCH_GOOGLE", "PLAY_YOUTUBE", "SET_VOLUME", "EMPTY_TRASH", "SEND_WHATSAPP", "GET_WEATHER"]
+        
+        for tag in standard_tags + supported_actions:
+            friendly_text = re.sub(rf"{tag}:\s*", "", friendly_text, flags=re.IGNORECASE).strip()
 
         return {
             "action": action,

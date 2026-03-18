@@ -19,7 +19,7 @@ class ActionManager:
     def __init__(self):
         # Define supported actions for validation
         self.supported_actions = {
-            "OPEN_APP", "SEARCH_GOOGLE", "PLAY_YOUTUBE",
+            "OPEN_APP", "CLOSE_APP", "SEARCH_GOOGLE", "PLAY_YOUTUBE",
             "SET_VOLUME", "EMPTY_TRASH", "SEND_WHATSAPP",
             "GET_WEATHER"
         }
@@ -41,10 +41,33 @@ class ActionManager:
         print(f"DEBUG: Processing Input: {repr(raw_text)}")
 
         # 2. Optimized Regex Parsing
-        # Uses a Non-Greedy capture with a Lookahead (?=...) to ensure 
-        # parameters don't accidentally swallow the 'RESPONSE:' tag.
-        action_pattern = r"ACTION:\s*(\w+)(?:\s*PARAM:\s*(.*?))?(?=\s*RESPONSE:|$)"
-        matches = re.findall(action_pattern, raw_text, re.IGNORECASE | re.DOTALL)
+        # Try different formats for maximum reliability
+        
+        # Format 1: Strict Prompt Style (ACTION: ... PARAM: ...)
+        strict_pattern = r"ACTION:\s*([\w_]+).*?PARAM:\s*(.*?)(?=\s*RESPONSE:|$)"
+        matches = re.findall(strict_pattern, raw_text, re.IGNORECASE | re.DOTALL)
+
+        # Format 2: Direct Style (ACTION_NAME: Parameter) - sometimes AI does this
+        if not matches:
+            for action_name in self.supported_actions:
+                pattern = rf"{action_name}:\s*(.*?)(?=\s*RESPONSE:|$)"
+                loose_match = re.search(pattern, raw_text, re.IGNORECASE)
+                if loose_match:
+                    matches.append((action_name, loose_match.group(1).strip()))
+
+        # Format 3: Keyword Fallback (ULTRA-ROBUST)
+        # If still no matches, look for keywords in the Hindi response
+        if not matches:
+            # Common app names to look for
+            common_apps = ["WhatsApp", "Chrome", "Google Chrome", "Safari", "Notes", "Finder", "Terminal"]
+            for app in common_apps:
+                if app.lower() in raw_text.lower():
+                    if any(kw in raw_text for kw in ["खोल", "open", "लाओ"]):
+                        matches.append(("OPEN_APP", app))
+                        break
+                    elif any(kw in raw_text for kw in ["बंद", "close", "quit"]):
+                        matches.append(("CLOSE_APP", app))
+                        break
 
         # 3. Execution Loop
         for action_name, action_param in matches:
@@ -57,24 +80,53 @@ class ActionManager:
                     self._dispatch_action(action_name, action_param)
                 except Exception as e:
                     print(f"❌ Execution Failure ({action_name}): {e}")
-            else:
-                print(f"⚠️ Ignored unsupported action: {action_name}")
 
         # 4. Extract Final Spoken Response
-        # We look for the RESPONSE: tag. If missing, we clean the raw text.
         response_match = re.search(r"RESPONSE:\s*(.*)", raw_text, re.IGNORECASE | re.DOTALL)
-
+        
         if response_match:
-            return response_match.group(1).strip()
+            final_text = response_match.group(1).strip()
+        else:
+            # If no RESPONSE tag, check if we triggered actions.
+            # If so, generate a friendly default confirmation.
+            if matches:
+                action_name, action_param = matches[0]
+                if action_name == "OPEN_APP":
+                    final_text = f"{action_param} खोल रही हूँ 😊"
+                elif action_name == "CLOSE_APP":
+                    final_text = f"{action_param} बंद कर रही हूँ 😊"
+                elif action_name == "SEARCH_GOOGLE":
+                    final_text = f"Google पर {action_param} search कर रही हूँ 😊"
+                elif action_name == "PLAY_YOUTUBE":
+                    final_text = f"YouTube पर {action_param} चला रही हूँ 😊"
+                elif action_name == "SEND_WHATSAPP":
+                    contact = action_param.split("|")[0].strip() if "|" in action_param else action_param
+                    final_text = f"{contact} को संदेश भेज रही हूँ 😊"
+                else:
+                    final_text = fallback_response
+            else:
+                final_text = fallback_response
 
-        # If no tag found, strip out the ACTION/PARAM blocks to get clean text
-        clean_text = re.sub(r"(ACTION|PARAM):.*?(?=\s*RESPONSE:|$)", "", raw_text, flags=re.IGNORECASE | re.DOTALL)
-        return clean_text.strip() if clean_text.strip() else fallback_response
+        # Final Cleanup: Deep strip ANY technical tags from the final speech string
+        # Strip Action: Param formats
+        for action in self.supported_actions:
+            final_text = re.sub(rf"{action}:\s*", "", final_text, flags=re.IGNORECASE).strip()
+        
+        # Strip standard tags
+        final_text = re.sub(r"(ACTION|PARAM|RESPONSE):\s*", "", final_text, flags=re.IGNORECASE).strip()
+        
+        # If after all cleanup it's still empty or looks technical, use a safe default
+        if not final_text or any(tag in final_text.upper() for tag in self.supported_actions):
+            return "ठीक है 😊"
+
+        return final_text
 
     def _dispatch_action(self, name: str, param: str):
         """Routes the validated action to the correct submodule."""
         if name == "OPEN_APP":
             app_actions.open_app(param)
+        elif name == "CLOSE_APP":
+            app_actions.close_app(param)
 
         elif name == "SEARCH_GOOGLE":
             browser_actions.google_search(param)
@@ -109,7 +161,7 @@ if __name__ == "__main__":
     # Test block to verify the logic
     test_manager = ActionManager()
     test_json = {
-        "raw": "ACTION: OPEN_APP PARAM: Notes RESPONSE: I've opened your Notes app.",
-        "response": "I've opened your Notes app."
+        "raw": "ACTION: OPEN_APP\nPARAM: Notes\nRESPONSE: कर दिया 😊",
+        "response": "कर दिया 😊"
     }
     print(f"Test Result: {test_manager.parse_and_execute(test_json)}")
