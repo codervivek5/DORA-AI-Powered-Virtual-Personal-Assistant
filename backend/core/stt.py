@@ -1,14 +1,17 @@
 # core/stt.py
-"""
-Speech-to-Text using whisper.cpp (pywhispercpp) for ultra-fast local transcription.
-Optimized for Hindi/English mixed speech.
-"""
 import pyaudio
 import wave
 import tempfile
 import os
+import requests
 from typing import Optional
 from config.settings import settings
+
+try:
+    from sarvamai import SarvamAI
+    SARVAM_AVAILABLE = True
+except ImportError:
+    SARVAM_AVAILABLE = False
 
 try:
     from pywhispercpp.model import Model
@@ -50,22 +53,30 @@ class STTProvider:
     """Speech-to-Text provider using whisper.cpp"""
     
     def __init__(self):
-        if not WHISPER_AVAILABLE:
-            print("⚠️ pywhispercpp not installed. Install with: pip install pywhispercpp")
-            self.model = None
-            return
-        
-        self.model_name = settings.WHISPER_MODEL
+        self.provider = settings.STT_PROVIDER
         self.device_index = get_best_mic()
         
-        try:
-            print(f"Loading Whisper model: {self.model_name} (whisper.cpp)...")
-            # pywhispercpp will auto-download model if not present
-            self.model = Model(self.model_name, n_threads=4)
-            print("✅ Whisper model loaded successfully!")
-        except Exception as e:
-            print(f"❌ Error loading Whisper model: {e}")
-            self.model = None
+        # Initialize Whisper if needed
+        if self.provider == "whisper":
+            if not WHISPER_AVAILABLE:
+                print("⚠️ pywhispercpp not installed. Falling back to Sarvam if available.")
+                self.provider = "sarvam"
+            else:
+                try:
+                    print(f"Loading Whisper model: {settings.WHISPER_MODEL} (whisper.cpp)...")
+                    self.model = Model(settings.WHISPER_MODEL, n_threads=4)
+                    print("✅ Whisper model loaded successfully!")
+                except Exception as e:
+                    print(f"❌ Error loading Whisper model: {e}")
+                    self.model = None
+
+        # Initialize Sarvam if needed
+        if self.provider == "sarvam":
+            if SARVAM_AVAILABLE and settings.SARVAM_API_KEY:
+                print("🔊 Sarvam AI STT initialized")
+                self.sarvam_client = SarvamAI(api_subscription_key=settings.SARVAM_API_KEY)
+            else:
+                self.sarvam_client = None
     
     def record_audio(self, duration: float = 5.0) -> Optional[str]:
         """Record audio from microphone and save to temporary file"""
@@ -118,7 +129,55 @@ class STTProvider:
         finally:
             p.terminate()
     
-    def transcribe(self, audio_file_path: str, language: str = "en") -> str:
+    def transcribe(self, audio_file_path: str, language: Optional[str] = "hi") -> str:
+        """Transcribe audio using the configured provider"""
+        if self.provider == "sarvam":
+            return self._transcribe_sarvam(audio_file_path, language)
+        else:
+            return self._transcribe_whisper(audio_file_path, language)
+
+    def _transcribe_sarvam(self, audio_file_path: str, language: Optional[str]) -> str:
+        """Transcribe using Sarvam AI (SDK -> REST fallback)"""
+        # Try SDK first
+        if self.sarvam_client:
+            try:
+                with open(audio_file_path, 'rb') as f:
+                    # Sarvam AI STT SDK usage (transcribe)
+                    response = self.sarvam_client.speech_to_text.translate(
+                        file=f,
+                        prompt=None,
+                        model="saaras:v2.5" # Updated from saaras:v1
+                    )
+                    # The SDK response usually has a 'transcript' field
+                    if hasattr(response, 'transcript'):
+                        return response.transcript
+                    elif isinstance(response, dict) and 'transcript' in response:
+                        return response['transcript']
+            except Exception as e:
+                print(f"Sarvam SDK STT error: {e}. Trying REST fallback...")
+
+        # Fallback to REST API
+        if not settings.SARVAM_API_KEY:
+            return ""
+
+        try:
+            url = "https://api.sarvam.ai/speech-to-text"
+            headers = {"api-subscription-key": settings.SARVAM_API_KEY}
+            with open(audio_file_path, 'rb') as f:
+                data = {"model": "saarika:v2.5"} 
+                files = {"file": ("audio.wav", f, "audio/wav")}
+                response = requests.post(url, headers=headers, files=files, data=data)
+                
+                if response.status_code == 200:
+                    return response.json().get("transcript", "")
+                else:
+                    print(f"Sarvam REST STT error {response.status_code}: {response.text}")
+                    return ""
+        except Exception as e:
+            print(f"Sarvam REST STT error: {e}")
+            return ""
+
+    def _transcribe_whisper(self, audio_file_path: str, language: Optional[str]) -> str:
         """Transcribe audio using whisper.cpp"""
         if not self.model:
             return ""
@@ -132,7 +191,7 @@ class STTProvider:
             print(f"Whisper transcription error: {e}")
             return ""
     
-    def listen_and_transcribe(self, phrase_time_limit: Optional[float] = None, language: str = "en") -> str:
+    def listen_and_transcribe(self, phrase_time_limit: Optional[float] = None, language: Optional[str] = None) -> str:
         """Record from microphone and transcribe"""
         duration = phrase_time_limit or 5.0
         
@@ -155,12 +214,11 @@ class STTProvider:
 # Global STT instance
 stt_provider = STTProvider()
 
-def transcribe_from_mic(phrase_time_limit: Optional[float] = None, language: str = "en") -> str:
+def transcribe_from_mic(phrase_time_limit: Optional[float] = None, language: Optional[str] = settings.STT_LANGUAGE) -> str:
     """Entry point for speech transcription"""
     return stt_provider.listen_and_transcribe(phrase_time_limit=phrase_time_limit, language=language)
 
 if __name__ == "__main__":
-    print("Testing whisper.cpp STT...")
     print("Say something...")
     result = transcribe_from_mic(phrase_time_limit=5, language="en")
     print(f"✅ You said: {result}")

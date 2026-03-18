@@ -32,8 +32,8 @@ class WakeWordDetector:
         
         while True:
             try:
-                # Auto-detect language or use settings to support "Ritu" in Hindi/English
-                text = transcribe_from_mic(phrase_time_limit=2.5, language=None).strip().lower()
+                # Use default STT language (Hindi) for wake word detection
+                text = transcribe_from_mic(phrase_time_limit=2.5).strip().lower()
                 
                 if not text:
                     continue

@@ -104,7 +104,7 @@ class RituUI(ctk.CTk):
             
             if active_session and (current_time - last_interaction_time < SESSION_TIMEOUT):
                 self.update_status("Listening (Active)...", "#00D4FF")
-                user_text = transcribe_from_mic(phrase_time_limit=5, language="en")
+                user_text = transcribe_from_mic(phrase_time_limit=5)
             else:
                 if active_session:
                     print("💤 Session timed out.")
@@ -116,7 +116,7 @@ class RituUI(ctk.CTk):
                     self.update_status("I'm listening...", "#00D4FF")
                     # Quick audio ack
                     # tts_provider.speak("Yes?") # Removed to make it "direct" as per user request
-                    user_text = transcribe_from_mic(phrase_time_limit=4, language="en")
+                    user_text = transcribe_from_mic(phrase_time_limit=4)
                 else:
                     user_text = None
 
@@ -128,8 +128,8 @@ class RituUI(ctk.CTk):
                     ai_raw_response = brain.chat(user_text)
                     spoken_response = action_manager.parse_and_execute(ai_raw_response)
                     
-                    # Update UI with response text immediately
-                    self.after(0, lambda: self.update_status("Speaking...", "#00FF7F", spoken_response))
+                    # Update UI status without showing full response text
+                    self.after(0, lambda: self.update_status("Speaking...", "#00FF7F", ""))
                     
                     # Speak
                     tts_provider.speak(spoken_response)

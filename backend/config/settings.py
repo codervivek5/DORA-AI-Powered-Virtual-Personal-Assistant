@@ -21,7 +21,8 @@ class Settings(BaseSettings):
     
     # STT Settings
     USE_LOCAL_STT: bool = True
-    STT_PROVIDER: str = "whisper"  # Using whisper.cpp for speed
+    STT_PROVIDER: str = "sarvam"  # Options: whisper, sarvam
+    STT_LANGUAGE: str = "hi"       # Default language for STT (hi/en/None)
     WHISPER_MODEL: str = "base"  # tiny, base, small, medium, large
     WHISPER_DEVICE: str = "cpu"
     
