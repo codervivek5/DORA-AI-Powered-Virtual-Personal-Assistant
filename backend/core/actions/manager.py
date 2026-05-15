@@ -29,93 +29,96 @@ class ActionManager:
         Main entry point. Handles both raw strings and Brain dictionary objects.
         Returns the final text that should be spoken/displayed to the user.
         """
-        # 1. Type Safety: Extract the 'raw' string if input is a dictionary
+        action_name = None
+        action_param = None
+        fallback_response = "ठीक है 😊"
+
+        # 1. Primary Strategy: Direct JSON/Dict Reading (Highly reliable for LangGraph)
         if isinstance(ai_input, dict):
-            raw_text = ai_input.get("raw", "")
-            # If the brain already extracted a friendly response, we'll keep it as a backup
-            fallback_response = ai_input.get("response", "")
+            # Read direct structural keys if populated by the brain or graph patch
+            action_name = ai_input.get("action")
+            action_param = ai_input.get("param")
+            fallback_response = ai_input.get("response") or ai_input.get("raw") or fallback_response
+            raw_text = str(ai_input.get("raw", ""))
         else:
             raw_text = str(ai_input)
-            fallback_response = ""
 
-        print(f"DEBUG: Processing Input: {repr(raw_text)}")
+        print(f"DEBUG: Processing Input Data Structure. Action: {action_name} | Param: {action_param}")
 
-        # 2. Optimized Regex Parsing
-        # Try different formats for maximum reliability
-        
-        # Format 1: Strict Prompt Style (ACTION: ... PARAM: ...)
-        strict_pattern = r"ACTION:\s*([\w_]+).*?PARAM:\s*(.*?)(?=\s*RESPONSE:|$)"
-        matches = re.findall(strict_pattern, raw_text, re.IGNORECASE | re.DOTALL)
+        # 2. Secondary Strategy: Regex Parsing if keys are missing but present in raw text
+        matches = []
+        if action_name and str(action_name).strip().lower() not in ["none", ""]:
+            matches.append((action_name, action_param or ""))
+        else:
+            # Format 1: Strict Prompt Style (ACTION: ... PARAM: ...)
+            strict_pattern = r"ACTION:\s*([\w_]+).*?PARAM:\s*(.*?)(?=\s*RESPONSE:|$)"
+            matches = re.findall(strict_pattern, raw_text, re.IGNORECASE | re.DOTALL)
 
-        # Format 2: Direct Style (ACTION_NAME: Parameter) - sometimes AI does this
-        if not matches:
-            for action_name in self.supported_actions:
-                pattern = rf"{action_name}:\s*(.*?)(?=\s*RESPONSE:|$)"
-                loose_match = re.search(pattern, raw_text, re.IGNORECASE)
-                if loose_match:
-                    matches.append((action_name, loose_match.group(1).strip()))
+            # Format 2: Direct Style (ACTION_NAME: Parameter)
+            if not matches:
+                for act in self.supported_actions:
+                    pattern = rf"{act}:\s*(.*?)(?=\s*RESPONSE:|$)"
+                    loose_match = re.search(pattern, raw_text, re.IGNORECASE)
+                    if loose_match:
+                        matches.append((act, loose_match.group(1).strip()))
 
-        # Format 3: Keyword Fallback (ULTRA-ROBUST)
-        # If still no matches, look for keywords in the Hindi response
-        if not matches:
-            # Common app names to look for
-            common_apps = ["WhatsApp", "Chrome", "Google Chrome", "Safari", "Notes", "Finder", "Terminal"]
-            for app in common_apps:
-                if app.lower() in raw_text.lower():
-                    if any(kw in raw_text for kw in ["खोल", "open", "लाओ"]):
-                        matches.append(("OPEN_APP", app))
-                        break
-                    elif any(kw in raw_text for kw in ["बंद", "close", "quit"]):
-                        matches.append(("CLOSE_APP", app))
-                        break
+            # Format 3: Intelligent Keyword Fallback (Robust case-insensitive tracking)
+            if not matches:
+                clean_raw = raw_text.lower()
+                if "whatsapp" in clean_raw:
+                    if any(kw in clean_raw for kw in ["खोल", "open", "लाओ", "चलाओ"]):
+                        matches.append(("OPEN_APP", "WhatsApp"))
+                    elif any(kw in clean_raw for kw in ["बंद", "close", "quit"]):
+                        matches.append(("CLOSE_APP", "WhatsApp"))
 
         # 3. Execution Loop
-        for action_name, action_param in matches:
-            action_name = action_name.strip().upper()
-            action_param = action_param.strip()
+        for act_id, act_val in matches:
+            if not act_id:
+                continue
+                
+            act_id = str(act_id).strip().upper()
+            act_val = str(act_val).strip()
 
-            if action_name in self.supported_actions:
-                print(f"🛠️ Executing: {action_name} | Param: {action_param}")
+            if act_id in self.supported_actions:
+                print(f"🛠️ [DISPATCH] Executing Action: {act_id} | Param: {act_val}")
                 try:
-                    self._dispatch_action(action_name, action_param)
+                    self._dispatch_action(act_id, act_val)
                 except Exception as e:
-                    print(f"❌ Execution Failure ({action_name}): {e}")
+                    print(f"❌ Execution Failure ({act_id}): {e}")
 
-        # 4. Extract Final Spoken Response
+        # 4. Extract and Clean Final Spoken Response
+        final_text = ""
         response_match = re.search(r"RESPONSE:\s*(.*)", raw_text, re.IGNORECASE | re.DOTALL)
         
         if response_match:
             final_text = response_match.group(1).strip()
         else:
-            # If no RESPONSE tag, check if we triggered actions.
-            # If so, generate a friendly default confirmation.
             if matches:
-                action_name, action_param = matches[0]
-                if action_name == "OPEN_APP":
-                    final_text = f"{action_param} खोल रही हूँ 😊"
-                elif action_name == "CLOSE_APP":
-                    final_text = f"{action_param} बंद कर रही हूँ 😊"
-                elif action_name == "SEARCH_GOOGLE":
-                    final_text = f"Google पर {action_param} search कर रही हूँ 😊"
-                elif action_name == "PLAY_YOUTUBE":
-                    final_text = f"YouTube पर {action_param} चला रही हूँ 😊"
-                elif action_name == "SEND_WHATSAPP":
-                    contact = action_param.split("|")[0].strip() if "|" in action_param else action_param
+                # Dynamic confirmation builder based on executed action
+                executed_name, executed_param = matches[0]
+                if executed_name == "OPEN_APP":
+                    final_text = f"{executed_param} खोल रही हूँ 😊"
+                elif executed_name == "CLOSE_APP":
+                    final_text = f"{executed_param} बंद कर रही हूँ 😊"
+                elif executed_name == "SEARCH_GOOGLE":
+                    final_text = f"Google पर {executed_param} search कर रही हूँ 😊"
+                elif executed_name == "PLAY_YOUTUBE":
+                    final_text = f"YouTube पर {executed_param} चला रही हूँ 😊"
+                elif executed_name == "SEND_WHATSAPP":
+                    contact = executed_param.split("|")[0].strip() if "|" in executed_param else executed_param
                     final_text = f"{contact} को संदेश भेज रही हूँ 😊"
                 else:
-                    final_text = fallback_response
+                    final_text = str(fallback_response)
             else:
-                final_text = fallback_response
+                final_text = str(fallback_response)
 
-        # Final Cleanup: Deep strip ANY technical tags from the final speech string
-        # Strip Action: Param formats
+        # Deep cleanup: Strip any lingering technical tags from speech output
         for action in self.supported_actions:
             final_text = re.sub(rf"{action}:\s*", "", final_text, flags=re.IGNORECASE).strip()
         
-        # Strip standard tags
         final_text = re.sub(r"(ACTION|PARAM|RESPONSE):\s*", "", final_text, flags=re.IGNORECASE).strip()
         
-        # If after all cleanup it's still empty or looks technical, use a safe default
+        # Safe structural fallback if text ends up empty or broken
         if not final_text or any(tag in final_text.upper() for tag in self.supported_actions):
             return "ठीक है 😊"
 
@@ -137,7 +140,6 @@ class ActionManager:
             weather_actions.get_weather(param)
 
         elif name == "SET_VOLUME":
-            # Extract just the numbers (handles "50%" or "to 50")
             vol_match = re.search(r"\d+", param)
             if vol_match:
                 system_actions.set_volume(int(vol_match.group()))
@@ -146,7 +148,6 @@ class ActionManager:
             system_actions.empty_trash()
 
         elif name == "SEND_WHATSAPP":
-            # Expected format: "Recipient Name | Message text"
             if "|" in param:
                 contact, message = param.split("|", 1)
                 whatsapp_actions.send_whatsapp_message(contact.strip(), message.strip())
@@ -156,12 +157,3 @@ class ActionManager:
 
 # Global instance for easy import
 action_manager = ActionManager()
-
-if __name__ == "__main__":
-    # Test block to verify the logic
-    test_manager = ActionManager()
-    test_json = {
-        "raw": "ACTION: OPEN_APP\nPARAM: Notes\nRESPONSE: कर दिया 😊",
-        "response": "कर दिया 😊"
-    }
-    print(f"Test Result: {test_manager.parse_and_execute(test_json)}")

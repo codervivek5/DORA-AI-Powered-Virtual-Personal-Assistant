@@ -1,6 +1,7 @@
 # core/actions/system.py
 import os
 import subprocess
+import datetime
 
 class SystemActions:
     """Muse's hands - System level controls for macOS"""
@@ -30,5 +31,12 @@ class SystemActions:
     def empty_trash(self):
         """Empty the trash bin"""
         return self.execute_applescript('tell application "Finder" to empty trash')
+
+    def get_current_time(self):
+        """Get current system time in a friendly Hindi format"""
+        now = datetime.datetime.now()
+        # Format like: 03:45 PM
+        time_str = now.strftime("%I:%M %p")
+        return f"अभी का समय {time_str} है। 😊"
 
 system_actions = SystemActions()
