@@ -3,22 +3,36 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Set
 import uvicorn
+from contextlib import asynccontextmanager
 from datetime import datetime
 import  os
 import  sys
 import json
+import time
 
 # Import Ritu core modules
 from core.brain import brain
 from core.stt import stt_provider
 from core.tts import tts_provider
 from config.settings import settings
+import subprocess
+import threading
+from loguru import logger
 
-# Initialize FastAPI app
+# Initialize FastAPI app with lifespan management
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    threading.Thread(target=start_assistant, daemon=True).start()
+    yield
+    # Shutdown logic (optional)
+    logger.info("🛑 Shutting down Ritu AI...")
+
 app = FastAPI(
     title="Ritu AI - Virtual Personal Assistant API",
     description="Ritu AI-powered virtual personal assistant with chat, voice, and task management capabilities",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Configure CORS for frontend communication
@@ -292,6 +306,27 @@ async def avatar_event_webhook(event: AvatarStateEvent):
     """
     await avatar_manager.broadcast_state(event.state)
     return {"status": "broadcasted", "state": event.state}
+
+def start_assistant():
+    """Start the ritu assistant background process"""
+    try:
+        # Give the API a moment to fully initialize before pinging it
+        time.sleep(3) 
+        python_executable = sys.executable
+        # Get the path to core/assistant.py relative to this file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        desktop_path = os.path.join(current_dir, "core", "assistant.py")
+        
+        logger.info(f"🔄 Launching Ritu Assistant: {desktop_path}")
+        
+        # Explicitly set PYTHONPATH to current directory so 'core' module can be found
+        env = os.environ.copy()
+        env["PYTHONPATH"] = current_dir
+        
+        # Setting cwd AND env is the safest way to fix import issues
+        subprocess.Popen([python_executable, desktop_path], cwd=current_dir, env=env)
+    except Exception as e:
+        logger.error(f"❌ Failed to launch Ritu Assistant: {e}")
 
 if __name__ == "__main__":
     uvicorn.run(

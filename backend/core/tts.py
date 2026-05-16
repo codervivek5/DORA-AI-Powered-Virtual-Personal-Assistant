@@ -135,7 +135,7 @@ class TTSProvider:
             logger.error(f"Error converting bytes to audio: {e}")
             return None, 16000
 
-    def speak(self, text: str) -> bool:
+    def speak(self, text: str, callback: Optional[Any] = None) -> bool:
         if not text or not text.strip():
             return False
 
@@ -176,7 +176,14 @@ class TTSProvider:
                 # 2. Make sure the numpy array structure is continuous in memory (Crucial for macOS CoreAudio wrappers)
                 audio_data = np.ascontiguousarray(audio_data)
 
-                # 3. Stream data into sounddevice
+                # 3. Trigger callback (e.g., for lip sync) just before audio starts
+                if callback:
+                    try:
+                        callback()
+                    except:
+                        pass
+
+                # 4. Stream data into sounddevice
                 sd.play(audio_data, samplerate=sample_rate)
                 sd.wait()  # Block until the text playback finishes safely
 
