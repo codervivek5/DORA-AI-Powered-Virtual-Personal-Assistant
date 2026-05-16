@@ -1,7 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Set
 import uvicorn
 from datetime import datetime
 import  os
@@ -24,7 +24,7 @@ app = FastAPI(
 # Configure CORS for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,6 +55,31 @@ class TaskRequest(BaseModel):
 chat_history = []
 tasks = []
 
+# Avatar WebSocket Connection Manager
+class AvatarConnectionManager:
+    def __init__(self):
+        self.active_connections: Set[WebSocket] = set()
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.add(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast_state(self, state: str):
+        message = json.dumps({"state": state})
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except:
+                pass
+
+avatar_manager = AvatarConnectionManager()
+
+class AvatarStateEvent(BaseModel):
+    state: str  # "idle", "listening", "thinking", "speaking"
+
 @app.get("/")
 async def root():
     """Root endpoint with API information"""
@@ -66,7 +91,9 @@ async def root():
             "chat": "/chat",
             "voice": "/voice",
             "tasks": "/tasks",
-            "health": "/health"
+            "health": "/health",
+            "avatar_ws": "/ws/avatar",
+            "avatar_event": "/api/avatar/event"
         }
     }
 
@@ -243,6 +270,28 @@ async def brain_health():
         "available_models": models,
         "status": "healthy" if is_connected else "unavailable"
     }
+
+# --- Avatar Endpoints ---
+
+@app.websocket("/ws/avatar")
+async def websocket_avatar_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for the Electron/React 3D Avatar to listen to state changes."""
+    await avatar_manager.connect(websocket)
+    try:
+        while True:
+            # We just keep the connection alive
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        avatar_manager.disconnect(websocket)
+
+@app.post("/api/avatar/event")
+async def avatar_event_webhook(event: AvatarStateEvent):
+    """
+    Webhook for the existing orchestration loop (e.g. desktop.py) 
+    to blindly notify the backend of state changes.
+    """
+    await avatar_manager.broadcast_state(event.state)
+    return {"status": "broadcasted", "state": event.state}
 
 if __name__ == "__main__":
     uvicorn.run(

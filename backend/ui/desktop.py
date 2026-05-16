@@ -88,6 +88,25 @@ class RituUI(ctk.CTk):
         if response_text is not None:
             self.response_label.configure(text=response_text)
 
+        # Map UI status to Avatar state
+        avatar_state = "idle"
+        if "listening" in text.lower() or "say" in text.lower():
+            avatar_state = "idle" if "say" in text.lower() else "listening"
+        elif "thinking" in text.lower():
+            avatar_state = "thinking"
+        elif "speaking" in text.lower():
+            avatar_state = "speaking"
+
+        # Silently ping the FastAPI backend so the Avatar UI reacts
+        def ping_avatar():
+            try:
+                import requests
+                requests.post("http://localhost:8000/api/avatar/event", json={"state": avatar_state}, timeout=0.5)
+            except:
+                pass
+        
+        threading.Thread(target=ping_avatar, daemon=True).start()
+
     def start_listening_thread(self):
         """Launch the voice loop in a background thread to prevent UI freezing"""
         thread = threading.Thread(target=self.voice_loop, daemon=True)

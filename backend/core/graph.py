@@ -1,4 +1,5 @@
 from typing import TypedDict, List, Dict, Optional, Any
+# pyrefly: ignore [missing-import]
 from langgraph.graph import StateGraph, END
 from core.brain import brain
 from core.actions.manager import action_manager
@@ -44,11 +45,9 @@ def ritu_action_node(state: RituState):
     """
     Executes the recognized automated tasks using action_manager.
     """
-    # Safeguard check: If action is missing, bypass execution and return the fallback text
-    if not state.get("action") or str(state["action"]).strip().lower() in ["none", ""]:
-        return {"final_output": state["response"]}
-
-    logger.info(f"🛠️ [ACTION NODE] Executing: {state['action']} with {state['param']}")
+    # We bypass the strict action string check here because action_manager
+    # has robust fallback logic to parse actions directly from the raw text.
+    logger.info(f"🛠️ [ACTION NODE] Parsing text for actions...")
 
     try:
         # Route processing down to your original action_manager workflow
@@ -60,24 +59,7 @@ def ritu_action_node(state: RituState):
 
     except Exception as e:
         logger.error(f"❌ Action Failed: {e}")
-        return {"final_output": f"अरे बाबा, {state['action']} करने में कुछ गड़बड़ हो गई!"}
-
-
-# --- Logic: Dynamic Edge Routing ---
-
-def should_continue(state: RituState):
-    """
-    Determines whether execution control shifts to the Action Node or terminates.
-    """
-    action = state.get("action")
-
-    # Clean check formatting to filter empty values or string literal fallbacks like "None"
-    if not action or str(action).strip().lower() in ["none", ""]:
-        logger.info("➡️ Edge Router: No valid action detected. Ending execution cycle.")
-        return "end"
-
-    logger.info(f"➡️ Edge Router: Action '{action}' identified. Transferring control to action node.")
-    return "execute_action"
+        return {"final_output": f"अरे बाबा, कुछ गड़बड़ हो गई!"}
 
 
 # --- Graph Construction: Architecture Setup ---
@@ -92,15 +74,8 @@ workflow.add_node("action", ritu_action_node)
 # Set the primary operational point of entry
 workflow.set_entry_point("brain")
 
-# Map paths checking condition results output
-workflow.add_conditional_edges(
-    "brain",
-    should_continue,
-    {
-        "execute_action": "action",
-        "end": END
-    }
-)
+# Always route to action node so the robust Action Manager fallback logic can parse the raw text
+workflow.add_edge("brain", "action")
 
 # Terminate pipeline workflow after action script executes completely
 workflow.add_edge("action", END)
