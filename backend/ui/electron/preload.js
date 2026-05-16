@@ -1,5 +1,5 @@
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  // We can expose IPC methods here if needed later
+  moveWindow: (delta) => ipcRenderer.send('move-window', delta)
 });

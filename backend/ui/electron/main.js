@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 function createWindow() {
@@ -16,12 +16,15 @@ function createWindow() {
     }
   });
 
-  // During development, point to the React Vite dev server
-  // In production, we'd load an index.html file
   win.loadURL('http://localhost:5173');
 
-  // To allow dragging the window by clicking anywhere
-  win.setIgnoreMouseEvents(true, { forward: true });
+  // Handle manual window movement from React
+  ipcMain.on('move-window', (event, { x, y }) => {
+    const currentPos = win.getPosition();
+    win.setPosition(currentPos[0] + x, currentPos[1] + y);
+  });
+
+  win.setIgnoreMouseEvents(false); // Enable mouse for manual dragging
 }
 
 app.whenReady().then(() => {
