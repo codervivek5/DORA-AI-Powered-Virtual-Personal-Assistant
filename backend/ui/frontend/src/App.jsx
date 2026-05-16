@@ -36,10 +36,7 @@ function App() {
         width: '100vw', 
         height: '100vh', 
         background: 'transparent', 
-        position: 'relative', 
-        border: '2px solid red', 
-        borderRadius: '20px',
-        boxSizing: 'border-box'
+        position: 'relative'
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -47,7 +44,7 @@ function App() {
       onMouseLeave={handleMouseUp}
     >
       <Canvas
-        camera={{ position: [0, 0, 3.2], fov: 30 }}
+        camera={{ position: [0, 0, 3.3], fov: 30 }}
         style={{ background: 'transparent' }}
         gl={{ alpha: true }}
       >
