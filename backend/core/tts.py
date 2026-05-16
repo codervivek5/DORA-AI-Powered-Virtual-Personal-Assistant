@@ -196,9 +196,20 @@ class TTSProvider:
                     except:
                         pass
 
-                # 5. Play using explicit OutputStream for better hardware release on macOS
-                with sd.OutputStream(samplerate=sample_rate, channels=len(audio_data.shape) if len(audio_data.shape) > 1 else 1) as stream:
-                    stream.write(audio_data)
+                # 5. Play using explicit OutputStream with RETRY logic for macOS stability
+                MAX_RETRIES = 3
+                for attempt in range(MAX_RETRIES):
+                    try:
+                        with sd.OutputStream(samplerate=sample_rate, channels=len(audio_data.shape) if len(audio_data.shape) > 1 else 1) as stream:
+                            stream.write(audio_data)
+                        break # Success
+                    except Exception as e:
+                        if attempt < MAX_RETRIES - 1:
+                            logger.warning(f"🔊 Speaker busy, retrying... ({attempt+1})")
+                            sd.stop()
+                            time.sleep(0.5)
+                        else:
+                            raise e
                 
                 logger.success("Playback completed")
                 return True

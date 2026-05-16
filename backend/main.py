@@ -308,30 +308,30 @@ async def avatar_event_webhook(event: AvatarStateEvent):
     return {"status": "broadcasted", "state": event.state}
 
 def start_assistant():
-    """Start the ritu assistant background process safely"""
+    """Start the ritu assistant background process safely with hardware reset"""
     try:
-        # 1. Kill any previously hanging assistant processes to avoid hardware conflicts
+        # 1. Surgical kill: Terminate any lingering assistant processes
+        logger.info("🧹 Cleaning up hardware handles...")
         try:
-            # We look for processes running 'core/assistant.py' and kill them
-            subprocess.run(["pkill", "-f", "core/assistant.py"], check=False)
-            time.sleep(1) # Give OS time to release hardware
+            # -9 forces immediate release of system resources on Mac
+            subprocess.run(["pkill", "-9", "-f", "assistant.py"], check=False)
+            time.sleep(1.5) # Time for CoreAudio/PortAudio to fully release
         except:
             pass
 
         # 2. Give the API a moment to fully initialize
         time.sleep(2) 
         python_executable = sys.executable
-        # Get the path to core/assistant.py relative to this file
         current_dir = os.path.dirname(os.path.abspath(__file__))
         assistant_path = os.path.join(current_dir, "core", "assistant.py")
         
-        logger.info(f"🔄 Launching Ritu Assistant: {assistant_path}")
+        logger.info(f"🚀 Launching Ritu Assistant: {assistant_path}")
         
-        # Explicitly set PYTHONPATH to current directory so 'core' module can be found
+        # Explicitly set PYTHONPATH to current directory
         env = os.environ.copy()
         env["PYTHONPATH"] = current_dir
         
-        # Setting cwd AND env is the safest way to fix import issues
+        # Launch fresh subprocess
         subprocess.Popen([python_executable, assistant_path], cwd=current_dir, env=env)
     except Exception as e:
         logger.error(f"❌ Failed to launch Ritu Assistant: {e}")

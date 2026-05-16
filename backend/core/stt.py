@@ -92,15 +92,30 @@ class STTProvider:
         sd.stop()
         time.sleep(0.3)  # Physical delay for hardware reset
         RATE = 16000  # Whisper works best with 16kHz
+        MAX_RETRIES = 3
+        
+        for attempt in range(MAX_RETRIES):
+            try:
+                print(f"🎤 Listening from mic {self.device_index} (Attempt {attempt+1})...")
+                recording = np.zeros((int(duration * RATE), 1), dtype='int16')
+                
+                with sd.InputStream(samplerate=RATE, channels=1, dtype='int16', device=self.device_index) as stream:
+                    frames_to_read = int(duration * RATE)
+                    data, overflowed = stream.read(frames_to_read)
+                    recording = data
+                
+                # If we reach here, it worked!
+                break
+            except Exception as e:
+                if attempt < MAX_RETRIES - 1:
+                    print(f"⚠️ Mic busy, retrying in 0.5s... ({e})")
+                    sd.stop()
+                    time.sleep(0.5)
+                else:
+                    print(f"❌ Recording error after {MAX_RETRIES} attempts: {e}")
+                    return None
+        
         try:
-            print(f"🎤 Listening from mic {self.device_index}...")
-            # Record using sounddevice with explicit InputStream context for safety
-            recording = np.zeros((int(duration * RATE), 1), dtype='int16')
-            with sd.InputStream(samplerate=RATE, channels=1, dtype='int16', device=self.device_index) as stream:
-                frames_to_read = int(duration * RATE)
-                data, overflowed = stream.read(frames_to_read)
-                recording = data
-            
             # Save to temporary file
             temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
             temp_file_path = temp_file.name

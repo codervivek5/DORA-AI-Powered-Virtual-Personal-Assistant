@@ -36,7 +36,8 @@ function App() {
         width: '100vw', 
         height: '100vh', 
         background: 'transparent', 
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden'
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -48,10 +49,11 @@ function App() {
         style={{ background: 'transparent' }}
         gl={{ alpha: true }}
       >
-        <ambientLight intensity={1.2} />
-        <directionalLight position={[1, 2, 2]} intensity={1.5} />
+        <ambientLight intensity={0.8} />
+        <directionalLight position={[1, 2, 2]} intensity={1.2} />
+        <pointLight position={[0, 1.5, 1]} intensity={0.5} color="#ffdfba" />
         
-        <Environment preset="city" />
+        <Environment preset="apartment" />
 
         <AvatarViewer avatarState={state} />
       </Canvas>
