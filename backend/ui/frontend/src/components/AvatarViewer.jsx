@@ -33,9 +33,9 @@ export default function AvatarViewer({ avatarState }) {
       (gltf) => {
         const vrmData = gltf.userData.vrm
         if (vrmData) {
-          // Force face forward (180 degrees)
+          // Center the 1.5m character vertically (head to toe)
           vrmData.scene.rotation.y = Math.PI
-          vrmData.scene.position.y = 0 
+          vrmData.scene.position.y = -0.8 
           setVrm(vrmData)
           currentVrmRef.current = vrmData
         }
@@ -46,7 +46,7 @@ export default function AvatarViewer({ avatarState }) {
       },
       (error) => {
         console.error('Error loading VRM:', error)
-        setError('Missing /avatar.vrm')
+        setError('Missing /avatar_anime.vrm')
       }
     )
 
@@ -81,6 +81,12 @@ export default function AvatarViewer({ avatarState }) {
     if (chest) {
       chest.rotation.x = Math.sin(timeRef.current * 1.5) * 0.02
     }
+
+    // Set a natural A-pose (Arms down)
+    const leftUpperArm = vrm.humanoid?.getNormalizedBoneNode('leftUpperArm')
+    const rightUpperArm = vrm.humanoid?.getNormalizedBoneNode('rightUpperArm')
+    if (leftUpperArm) leftUpperArm.rotation.z = 1.3
+    if (rightUpperArm) rightUpperArm.rotation.z = -1.3
 
     // Blinking logic (Random blink every 3-5 seconds)
     if (blinkTimerRef.current > 4) {

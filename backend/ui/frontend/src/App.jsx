@@ -32,18 +32,26 @@ function App() {
 
   return (
     <div 
-      style={{ width: '100vw', height: '100vh', background: 'transparent', position: 'relative' }}
+      style={{ 
+        width: '100vw', 
+        height: '100vh', 
+        background: 'transparent', 
+        position: 'relative', 
+        border: '2px solid red', 
+        borderRadius: '20px',
+        boxSizing: 'border-box'
+      }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
       <Canvas
-        camera={{ position: [0, 0.8, 6.5], fov: 30 }}
+        camera={{ position: [0, 0, 3.2], fov: 30 }}
         style={{ background: 'transparent' }}
         gl={{ alpha: true }}
       >
-        <ambientLight intensity={1.0} />
+        <ambientLight intensity={1.2} />
         <directionalLight position={[1, 2, 2]} intensity={1.5} />
         
         <Environment preset="city" />
