@@ -1,3 +1,4 @@
+import time
 import os
 import wave
 import tempfile
@@ -172,21 +173,33 @@ class TTSProvider:
             try:
                 # 1. Stop any currently active or hanging audio channels before starting a new one
                 sd.stop()
+                time.sleep(0.5)  # Physical delay for hardware reset on macOS
 
-                # 2. Make sure the numpy array structure is continuous in memory (Crucial for macOS CoreAudio wrappers)
-                audio_data = np.ascontiguousarray(audio_data)
+                # 2. Resample to 16000 if needed (Matches STT and is stable for hardware switching)
+                if sample_rate != 16000:
+                    try:
+                        from scipy.signal import resample
+                        num_samples = int(len(audio_data) * 16000 / sample_rate)
+                        audio_data = resample(audio_data, num_samples)
+                        sample_rate = 16000
+                    except ImportError:
+                        # If scipy not available, just try to play at original rate
+                        pass
 
-                # 3. Trigger callback (e.g., for lip sync) just before audio starts
+                # 3. Make sure the numpy array structure is continuous in memory (Crucial for macOS CoreAudio wrappers)
+                audio_data = np.ascontiguousarray(audio_data, dtype='float32')
+
+                # 4. Trigger callback (e.g., for lip sync) just before audio starts
                 if callback:
                     try:
                         callback()
                     except:
                         pass
 
-                # 4. Stream data into sounddevice
-                sd.play(audio_data, samplerate=sample_rate)
-                sd.wait()  # Block until the text playback finishes safely
-
+                # 5. Play using explicit OutputStream for better hardware release on macOS
+                with sd.OutputStream(samplerate=sample_rate, channels=len(audio_data.shape) if len(audio_data.shape) > 1 else 1) as stream:
+                    stream.write(audio_data)
+                
                 logger.success("Playback completed")
                 return True
             except Exception as playback_error:

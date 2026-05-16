@@ -44,7 +44,7 @@ class RituAssistant:
         detector = wake_word_detector
         active_session = False
         last_interaction_time = 0
-        SESSION_TIMEOUT = 10 
+        SESSION_TIMEOUT = 20 
 
         last_processed_text = ""
         repeat_count = 0
@@ -66,6 +66,7 @@ class RituAssistant:
 
                 if detector.listen():
                     active_session = True
+                    last_interaction_time = current_time # Start session timer immediately
                     self.update_status("I'm listening...")
                     user_text = transcribe_from_mic(phrase_time_limit=4)
                 else:

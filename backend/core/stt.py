@@ -1,9 +1,21 @@
-# core/stt.py
-import pyaudio
+try:
+    import sounddevice as sd
+    SD_AVAILABLE = True
+except ImportError:
+    SD_AVAILABLE = False
+    class DummySD:
+        def stop(self):
+            pass
+    sd = DummySD()
+import time
 import wave
 import tempfile
 import os
 import requests
+
+# Chunk size for audio streaming
+CHUNK = 1024
+
 from typing import Optional
 from config.settings import settings
 
@@ -19,34 +31,30 @@ try:
 except ImportError:
     WHISPER_AVAILABLE = False
 
+import numpy as np
+
 def get_best_mic():
-    """Find the best microphone device"""
-    p = pyaudio.PyAudio()
-    mic_list = []
-    
+    """Find the best microphone device using sounddevice"""
     try:
-        for i in range(p.get_device_count()):
-            device_info = p.get_device_info_by_index(i)
-            if device_info.get('maxInputChannels') > 0:
-                mic_list.append((i, device_info.get('name')))
+        devices = sd.query_devices()
+        mic_list = []
+        for i, dev in enumerate(devices):
+            if dev['max_input_channels'] > 0:
+                mic_list.append((i, dev['name']))
+        
+        if not mic_list:
+            return 0
+
+        # Priority: MacBook Pro Microphone or similar
+        for idx, name in mic_list:
+            if "microphone" in name.lower() or "mic" in name.lower():
+                print(f"Auto-selected mic: {name} (index {idx})")
+                return idx
+        
+        return mic_list[0][0]
     except Exception as e:
         print(f"Error listing microphones: {e}")
         return 0
-
-    if not mic_list:
-        print("No input device found! Using default mic 0.")
-        return 0
-
-    # Priority: Laptop / USB microphone
-    for idx, name in mic_list:
-        if "microphone" in name.lower() or "mic" in name.lower():
-            print(f"Auto-selected normal mic: {name} (index {idx})")
-            return idx
-
-    # Fallback: first available input device
-    idx, name = mic_list[0]
-    print(f"Fallback mic selected: {name} (index {idx})")
-    return idx
 
 
 class STTProvider:
@@ -79,55 +87,35 @@ class STTProvider:
                 self.sarvam_client = None
     
     def record_audio(self, duration: float = 5.0) -> Optional[str]:
-        """Record audio from microphone and save to temporary file"""
-        CHUNK = 1024
-        FORMAT = pyaudio.paInt16
-        CHANNELS = 1
+        """Record audio from microphone using sounddevice for maximum stability on macOS"""
+        # Ensure any previous audio is stopped
+        sd.stop()
+        time.sleep(0.3)  # Physical delay for hardware reset
         RATE = 16000  # Whisper works best with 16kHz
-        
-        p = pyaudio.PyAudio()
-        
         try:
-            stream = p.open(
-                format=FORMAT,
-                channels=CHANNELS,
-                rate=RATE,
-                input=True,
-                input_device_index=self.device_index,
-                frames_per_buffer=CHUNK
-            )
-            
             print(f"🎤 Listening from mic {self.device_index}...")
-            
-            frames = []
-            max_frames = int(RATE / CHUNK * duration)
-            
-            for _ in range(max_frames):
-                data = stream.read(CHUNK, exception_on_overflow=False)
-                frames.append(data)
-            
-            stream.stop_stream()
-            stream.close()
+            # Record using sounddevice with explicit InputStream context for safety
+            recording = np.zeros((int(duration * RATE), 1), dtype='int16')
+            with sd.InputStream(samplerate=RATE, channels=1, dtype='int16', device=self.device_index) as stream:
+                frames_to_read = int(duration * RATE)
+                data, overflowed = stream.read(frames_to_read)
+                recording = data
             
             # Save to temporary file
             temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
             temp_file_path = temp_file.name
             temp_file.close()
             
-            wf = wave.open(temp_file_path, 'wb')
-            wf.setnchannels(CHANNELS)
-            wf.setsampwidth(p.get_sample_size(FORMAT))
-            wf.setframerate(RATE)
-            wf.writeframes(b''.join(frames))
-            wf.close()
+            with wave.open(temp_file_path, 'wb') as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2) # 16-bit
+                wf.setframerate(RATE)
+                wf.writeframes(recording.tobytes())
             
             return temp_file_path
-            
         except Exception as e:
             print(f"Recording error: {e}")
             return None
-        finally:
-            p.terminate()
     
     def transcribe(self, audio_file_path: str, language: Optional[str] = "hi") -> str:
         """Transcribe audio using the configured provider"""

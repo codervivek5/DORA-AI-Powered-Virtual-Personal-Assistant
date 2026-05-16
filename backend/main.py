@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
     threading.Thread(target=start_assistant, daemon=True).start()
     yield
     # Shutdown logic (optional)
-    logger.info("🛑 Shutting down Ritu AI...")
+    logger.info("Shutting down Ritu AI...")
 
 app = FastAPI(
     title="Ritu AI - Virtual Personal Assistant API",
@@ -308,23 +308,31 @@ async def avatar_event_webhook(event: AvatarStateEvent):
     return {"status": "broadcasted", "state": event.state}
 
 def start_assistant():
-    """Start the ritu assistant background process"""
+    """Start the ritu assistant background process safely"""
     try:
-        # Give the API a moment to fully initialize before pinging it
-        time.sleep(3) 
+        # 1. Kill any previously hanging assistant processes to avoid hardware conflicts
+        try:
+            # We look for processes running 'core/assistant.py' and kill them
+            subprocess.run(["pkill", "-f", "core/assistant.py"], check=False)
+            time.sleep(1) # Give OS time to release hardware
+        except:
+            pass
+
+        # 2. Give the API a moment to fully initialize
+        time.sleep(2) 
         python_executable = sys.executable
         # Get the path to core/assistant.py relative to this file
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        desktop_path = os.path.join(current_dir, "core", "assistant.py")
+        assistant_path = os.path.join(current_dir, "core", "assistant.py")
         
-        logger.info(f"🔄 Launching Ritu Assistant: {desktop_path}")
+        logger.info(f"🔄 Launching Ritu Assistant: {assistant_path}")
         
         # Explicitly set PYTHONPATH to current directory so 'core' module can be found
         env = os.environ.copy()
         env["PYTHONPATH"] = current_dir
         
         # Setting cwd AND env is the safest way to fix import issues
-        subprocess.Popen([python_executable, desktop_path], cwd=current_dir, env=env)
+        subprocess.Popen([python_executable, assistant_path], cwd=current_dir, env=env)
     except Exception as e:
         logger.error(f"❌ Failed to launch Ritu Assistant: {e}")
 

@@ -51,7 +51,7 @@ class WakeWordDetector:
                 return False
             except Exception as e:
                 logger.error(f"❌ Wake word error: {e}")
-                time.sleep(1) # Back off on error
+                time.sleep(1)  # Back off on error
                 
     def __del__(self):
         """Cleanup resources if any"""

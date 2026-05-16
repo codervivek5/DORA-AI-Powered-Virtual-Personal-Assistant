@@ -3,13 +3,17 @@
 # Kill all background processes if the script is stopped
 trap "kill 0" EXIT
 
+# Kill any existing process on port 8000 (FastAPI) and 5173 (Vite)
+echo "🧹 Cleaning up existing ports..."
+lsof -ti:8000,5173 | xargs kill -9 2>/dev/null
+
 echo "------------------------------------------"
 echo "🚀 Starting Ritu AI Ecosystem..."
 echo "------------------------------------------"
 
 # 1. Start Backend (FastAPI + Assistant)
 echo "📡 [1/3] Starting Backend & Assistant..."
-python main.py &
+python3 main.py &
 BACKEND_PID=$!
 
 # Give backend a moment to start
