@@ -1,8 +1,4 @@
 # core/wakeword.py
-"""
-Wake word detection using Whisper.
-Multilingual support for "Muse" and its variants.
-"""
 import time
 import os
 import pyrootutils
@@ -33,7 +29,7 @@ class WakeWordDetector:
         while True:
             try:
                 # Use default STT language (Hindi) for wake word detection
-                text = transcribe_from_mic(phrase_time_limit=2.5).strip().lower()
+                text = transcribe_from_mic(phrase_time_limit=10.0).strip().lower()
                 
                 if not text:
                     continue

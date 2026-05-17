@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     SYSTEM_PROMPT:str = system_prompt
     
     # Wake Word Settings
-    WAKE_WORD_VARIANTS: list[str] = ["shalu", "शालू", "शालु","shaalu","shaaluuu","shaaaluu","shall","shallu","shalluu","chalu","start"]
+    WAKE_WORD_VARIANTS: list[str] = ["सालू","shalu", "शालू", "शालु","shaalu","shaaluuu","shaaaluu","shall","shallu","shalluu","chalu","start","चालू"]
     
     # STT Settings
     USE_LOCAL_STT: bool = True
@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     
     # TTS Settings
     USE_LOCAL_TTS: bool = False
-    TTS_PROVIDER: str = "sarvam"
+    # TTS_PROVIDER: str = "sarvam"
+    TTS_PROVIDER: str = "edge"
     F5_MODEL_ID: str = "SPRINGLab/F5-Hindi-24KHz"
     SARVAM_API_KEY: Optional[str] = None
     SARVAM_MODEL: str = "bulbul:v2" # Options: bulbul:v2, bulbul:v3, shalu (if available)

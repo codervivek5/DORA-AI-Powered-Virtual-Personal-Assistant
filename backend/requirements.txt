@@ -22,3 +22,4 @@ scipy
 httpx
 sarvamai
 loguru
+edge-tts

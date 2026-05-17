@@ -50,6 +50,33 @@ class MuseBrain:
         except Exception as e:
             print(f"⚠️ Memory save error: {e}")
 
+    def _fix_gender(self, text: str) -> str:
+        """Common male->female corrections"""
+        replacements = {
+            "समझ गया": "समझ गई",
+            "कर रहा हूँ": "कर रही हूँ",
+            "जा रहा हूँ": "जा रही हूँ",
+            "हो गया मुझे": "हो गई मुझे",
+            "मैं तैयार हूँ": "मैं तैयार हूँ",  # neutral, ok
+            "बोल रहा हूँ": "बोल रही हूँ",
+            "सोच रहा हूँ": "सोच रही हूँ",
+            "देख रहा हूँ": "देख रही हूँ",
+            "कर सकता हूँ": "कर सकती हूँ",
+            "समझता हूँ": "समझती हूँ",
+            "चाहता हूँ": "चाहती हूँ",
+            "जानता हूँ": "जानती हूँ",
+            "रहा हूँ": "रही हूँ",
+            "गया हूँ": "गई हूँ",
+            "आया हूँ": "आई हूँ",
+            "करता हूँ": "करती हूँ",
+            "देता हूँ": "देती हूँ",
+            "लेता हूँ": "लेती हूँ",
+            "बताता हूँ": "बताती हूँ"
+        }
+        for male, female in replacements.items():
+            text = text.replace(male, female)
+        return text
+
     def _parse_structured_response(self, raw_text: str) -> Dict[str, Any]:
         """
         Extracts the Action, Param, and Response components.
@@ -75,6 +102,8 @@ class MuseBrain:
         for tag in standard_tags + supported_actions:
             friendly_text = re.sub(rf"{tag}:\s*", "", friendly_text, flags=re.IGNORECASE).strip()
 
+        friendly_text = self._fix_gender(friendly_text)
+
         return {
             "action": action,
             "param": param,
@@ -87,6 +116,12 @@ class MuseBrain:
         The main intelligence loop.
         Processes user input, updates memory, and calls Llama via Ollama.
         """
+        wrapped_message = (
+            f"{user_message}\n"
+            f"[ज़रूरी: जवाब सिर्फ हिंदी देवनागरी में। "
+            f"तुम लड़की हो — 'समझ गई', 'कर रही हूँ', 'लग रहा है मुझे' — हमेशा स्त्रीलिंग।]"
+        )
+
         if not user_message or not user_message.strip():
             return {"action": None, "param": None, "response": "बोलो ना, सुन रही हूँ।"}
 

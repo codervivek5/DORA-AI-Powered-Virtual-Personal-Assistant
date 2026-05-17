@@ -284,26 +284,7 @@ class STTProvider:
             return self._transcribe_whisper(audio_file_path, language)
 
     def _transcribe_sarvam(self, audio_file_path: str, language: Optional[str]) -> str:
-        """Transcribe using Sarvam AI (SDK -> REST fallback)"""
-        # Try SDK first
-        if self.sarvam_client:
-            try:
-                with open(audio_file_path, 'rb') as f:
-                    # Sarvam AI STT SDK usage (transcribe)
-                    response = self.sarvam_client.speech_to_text.translate(
-                        file=f,
-                        prompt=None,
-                        model="saaras:v2.5" # Updated from saaras:v1
-                    )
-                    # The SDK response usually has a 'transcript' field
-                    if hasattr(response, 'transcript'):
-                        return response.transcript
-                    elif isinstance(response, dict) and 'transcript' in response:
-                        return response['transcript']
-            except Exception as e:
-                print(f"Sarvam SDK STT error: {e}. Trying REST fallback...")
-
-        # Fallback to REST API
+        """Transcribe using Sarvam AI (REST API to prevent English translation)"""
         if not settings.SARVAM_API_KEY:
             return ""
 
@@ -311,7 +292,11 @@ class STTProvider:
             url = "https://api.sarvam.ai/speech-to-text"
             headers = {"api-subscription-key": settings.SARVAM_API_KEY}
             with open(audio_file_path, 'rb') as f:
-                data = {"model": "saarika:v2.5"} 
+                # model saarika:v2.5 with language_code enforces native Hindi transcription, NO English translation.
+                data = {
+                    "model": "saarika:v2.5",
+                    "language_code": "hi-IN" 
+                }
                 files = {"file": ("audio.wav", f, "audio/wav")}
                 # Added timeout=8.0 to prevent indefinite freezing during network delays
                 response = requests.post(url, headers=headers, files=files, data=data, timeout=8.0)
