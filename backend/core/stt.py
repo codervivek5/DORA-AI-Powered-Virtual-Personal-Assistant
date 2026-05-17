@@ -97,34 +97,168 @@ class STTProvider:
                 self.sarvam_client = None
     
     def record_audio(self, duration: float = 5.0) -> Optional[str]:
-        """Record audio from microphone using sounddevice for maximum stability on macOS"""
+        """Record audio from microphone using ffmpeg on macOS for absolute, freeze-proof stability with a sounddevice fallback"""
+        import subprocess
+        
+        # Create a temporary file path
+        try:
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+            temp_file_path = temp_file.name
+            temp_file.close()
+        except Exception as e:
+            print(f"Error creating temp file: {e}")
+            return None
+
+        # Check if ffmpeg is available at /opt/homebrew/bin/ffmpeg or in PATH
+        ffmpeg_bin = "/opt/homebrew/bin/ffmpeg"
+        if not os.path.exists(ffmpeg_bin):
+            ffmpeg_bin = "ffmpeg"  # fallback to PATH
+            
+        print(f"🎤 Recording {duration}s from system default mic using ffmpeg...")
+        
+        try:
+            # We record using ffmpeg via a subprocess which is 100% immune to Python GIL and PortAudio C-level hangs!
+            cmd = [
+                ffmpeg_bin,
+                "-f", "avfoundation",
+                "-i", ":default",
+                "-t", str(duration),
+                "-ar", "16000",
+                "-ac", "1",
+                "-y",
+                temp_file_path
+            ]
+            
+            # Execute with a safety timeout to guarantee it never blocks the main Python process
+            subprocess.run(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=duration + 3.0,
+                check=True
+            )
+            
+            # Verify file exists and is not empty
+            if os.path.exists(temp_file_path) and os.path.getsize(temp_file_path) > 1000:
+                return temp_file_path
+            else:
+                print("❌ ffmpeg recorded file is empty or missing.")
+                return None
+                
+        except subprocess.TimeoutExpired:
+            print("⚠️ ffmpeg recording timed out! Force-killing process...")
+            try:
+                os.unlink(temp_file_path)
+            except:
+                pass
+            return None
+        except Exception as e:
+            print(f"⚠️ ffmpeg recording failed: {e}. Falling back to sounddevice recording...")
+            try:
+                os.unlink(temp_file_path)
+            except:
+                pass
+            return self._record_audio_sounddevice(duration)
+
+    def _record_audio_sounddevice(self, duration: float = 5.0) -> Optional[str]:
+        """Record audio from microphone at native samplerate with automatic timeout protection and in-memory downsampling for absolute stability on macOS"""
+        import threading
+        
         # Ensure any previous audio is stopped
-        sd.stop()
+        try:
+            sd.stop()
+        except:
+            pass
         time.sleep(0.3)  # Physical delay for hardware reset
-        RATE = 16000  # Whisper works best with 16kHz
+        
+        # Query native rate for the chosen device index to prevent CoreAudio resampler hangs
+        try:
+            dev_info = sd.query_devices(self.device_index)
+            RATE = int(dev_info.get('default_samplerate', 16000))
+        except Exception as dev_err:
+            print(f"⚠️ Error querying samplerate for device {self.device_index}: {dev_err}, falling back to 16000")
+            RATE = 16000
+            
         MAX_RETRIES = 3
         
-        for attempt in range(MAX_RETRIES):
+        recording_data = [None]
+        recording_error = [None]
+        
+        def target_record():
             try:
-                print(f"🎤 Listening from mic {self.device_index} (Attempt {attempt+1})...")
-                recording = np.zeros((int(duration * RATE), 1), dtype='int16')
-                
                 with sd.InputStream(samplerate=RATE, channels=1, dtype='int16', device=self.device_index) as stream:
                     frames_to_read = int(duration * RATE)
                     data, overflowed = stream.read(frames_to_read)
-                    recording = data
+                    recording_data[0] = data
+            except Exception as e:
+                recording_error[0] = e
+
+        recording = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                print(f"🎤 Listening from mic {self.device_index} (Attempt {attempt+1}) at native {RATE}Hz...")
+                recording_data[0] = None
+                recording_error[0] = None
                 
-                # If we reach here, it worked!
-                break
+                t = threading.Thread(target=target_record)
+                t.daemon = True
+                t.start()
+                
+                # Wait for thread to complete, with a safety timeout (duration + 2.5 seconds)
+                t.join(timeout=duration + 2.5)
+                
+                if t.is_alive():
+                    print(f"⚠️ Mic stream hung/timed out! Stopping and retrying...")
+                    try:
+                        sd.stop()
+                    except:
+                        pass
+                    time.sleep(0.5)
+                    continue
+                    
+                if recording_error[0] is not None:
+                    print(f"⚠️ Mic error: {recording_error[0]}, retrying...")
+                    try:
+                        sd.stop()
+                    except:
+                        pass
+                    time.sleep(0.5)
+                    continue
+                    
+                if recording_data[0] is not None:
+                    recording = recording_data[0]
+                    break
             except Exception as e:
                 if attempt < MAX_RETRIES - 1:
-                    print(f"⚠️ Mic busy, retrying in 0.5s... ({e})")
-                    sd.stop()
+                    print(f"⚠️ Mic recording exception: {e}, retrying in 0.5s...")
+                    try:
+                        sd.stop()
+                    except:
+                        pass
                     time.sleep(0.5)
                 else:
-                    print(f"❌ Recording error after {MAX_RETRIES} attempts: {e}")
+                    print(f"❌ Recording exception after {MAX_RETRIES} attempts: {e}")
                     return None
         
+        if recording is None:
+            print("❌ Recording failed: No audio data captured.")
+            return None
+            
+        # Downsample to 16000 Hz if recorded at a different native rate
+        target_rate = 16000
+        if RATE != target_rate:
+            try:
+                # Use high-performance numpy linear interpolation for resampling in-memory
+                target_length = int(duration * target_rate)
+                recording = np.interp(
+                    np.linspace(0, len(recording), target_length, endpoint=False),
+                    np.arange(len(recording)),
+                    recording.flatten()
+                ).reshape(-1, 1).astype('int16')
+                RATE = target_rate
+            except Exception as resample_err:
+                print(f"⚠️ Downsampling error: {resample_err}")
+            
         try:
             # Save to temporary file
             temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')

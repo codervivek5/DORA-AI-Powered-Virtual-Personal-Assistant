@@ -6,6 +6,7 @@ export const useAvatarAnimations = (vrm, avatarState) => {
   const blinkTimerRef = useRef(0);
   const gazeTimerRef = useRef(0);
   const moodTimerRef = useRef(0);
+  const speakingGestureTimerRef = useRef(0);
 
   // Refs for smooth state management
   const states = useRef({
@@ -24,172 +25,403 @@ export const useAvatarAnimations = (vrm, avatarState) => {
     timeRef.current += delta;
     const t = timeRef.current;
 
+    // =========================================================
     // 1. STATE TRANSITIONS
-    const lerpSpeed = 1.5;
-    states.current.thinking = THREE.MathUtils.lerp(states.current.thinking, avatarState === 'thinking' ? 1 : 0, delta * lerpSpeed);
-    states.current.listening = THREE.MathUtils.lerp(states.current.listening, avatarState === 'listening' ? 1 : 0, delta * 2.5);
-    states.current.speaking = THREE.MathUtils.lerp(states.current.speaking, avatarState === 'speaking' ? 1 : 0, delta * 3.0);
+    // =========================================================
 
+    const lerpSpeed = 1.5;
+
+    states.current.thinking = THREE.MathUtils.lerp(
+      states.current.thinking,
+      avatarState === 'thinking' ? 1 : 0,
+      delta * lerpSpeed
+    );
+
+    states.current.listening = THREE.MathUtils.lerp(
+      states.current.listening,
+      avatarState === 'listening' ? 1 : 0,
+      delta * 2.5
+    );
+
+    states.current.speaking = THREE.MathUtils.lerp(
+      states.current.speaking,
+      avatarState === 'speaking' ? 1 : 0,
+      delta * 3.0
+    );
+
+    // =========================================================
     // 2. MOOD & EMOTION ENGINE
+    // =========================================================
+
     moodTimerRef.current += delta;
+
     if (moodTimerRef.current > 12) {
       const moods = ['calm', 'happy', 'thoughtful', 'caring'];
-      states.current.mood = moods[Math.floor(Math.random() * moods.length)];
+      states.current.mood =
+        moods[Math.floor(Math.random() * moods.length)];
+
       moodTimerRef.current = 0;
     }
-    states.current.moodIntensity = THREE.MathUtils.lerp(states.current.moodIntensity, 1.0, delta * 0.2);
+
+    states.current.moodIntensity = THREE.MathUtils.lerp(
+      states.current.moodIntensity,
+      1.0,
+      delta * 0.2
+    );
 
     // =========================================================
-    // NATURAL HUMAN EYE GAZE SYSTEM
+    // 3. NATURAL HUMAN EYE GAZE SYSTEM
     // =========================================================
+
     gazeTimerRef.current += delta;
+
     if (gazeTimerRef.current > (Math.random() * 4 + 4)) {
-      const lookAway = Math.random() > 0.75;
+
+      // Never look away if speaking, maintain direct eye contact
+      const lookAway = avatarState !== 'speaking' && Math.random() > 0.75;
+
       states.current.gazeTarget.set(
-        lookAway ? (Math.random() - 0.5) * 0.4 : (Math.random() - 0.5) * 0.02,
+        lookAway
+          ? (Math.random() - 0.5) * 0.4
+          : (Math.random() - 0.5) * 0.02,
+
         1.42 + (Math.random() - 0.5) * 0.02,
+
         lookAway ? 2 : 4
       );
+
       gazeTimerRef.current = 0;
     }
 
     // SOFT EYE FOLLOW
-    states.current.currentGaze.lerp(states.current.gazeTarget, delta * 0.65);
+    states.current.currentGaze.lerp(
+      states.current.gazeTarget,
+      delta * 0.65
+    );
 
-    // MICRO SACCADES (Ultra-subtle for stability)
+    // MICRO SACCADES
     const microX = Math.sin(t * 7.5) * 0.003;
     const microY = Math.cos(t * 5.2) * 0.001;
+
     states.current.currentGaze.x += microX;
     states.current.currentGaze.y += microY;
 
     vrm.lookAt?.lookAt(states.current.currentGaze);
 
+    // =========================================================
     // 4. NATURAL BREATHING & POSTURE
+    // =========================================================
+
     const breathingCycle = Math.sin(t * 0.8);
+
     const chest = vrm.humanoid?.getNormalizedBoneNode('chest');
     const spine = vrm.humanoid?.getNormalizedBoneNode('spine');
     const head = vrm.humanoid?.getNormalizedBoneNode('head');
-    const leftShoulder = vrm.humanoid?.getNormalizedBoneNode('leftShoulder');
-    const rightShoulder = vrm.humanoid?.getNormalizedBoneNode('rightShoulder');
 
-    if (chest) chest.rotation.x = breathingCycle * 0.015 + (states.current.listening * 0.04);
-    if (spine) {
-        spine.rotation.y = Math.sin(t * 0.2) * 0.01;
-        spine.rotation.x = THREE.MathUtils.lerp(spine.rotation.x, states.current.listening * 0.04, delta * 2);
+    const leftShoulder =
+      vrm.humanoid?.getNormalizedBoneNode('leftShoulder');
+
+    const rightShoulder =
+      vrm.humanoid?.getNormalizedBoneNode('rightShoulder');
+
+    const neck =
+      vrm.humanoid?.getNormalizedBoneNode('neck');
+
+    if (chest) {
+
+      chest.rotation.x =
+        breathingCycle * 0.015 -
+        (states.current.listening * 0.2);
+
+      chest.rotation.y =
+        Math.sin(t * 0.25) * 0.01;
+
+      // talking chest movement
+      chest.rotation.z =
+        Math.sin(t * 2.0) *
+        0.01 *
+        states.current.speaking;
     }
-    if (leftShoulder) leftShoulder.rotation.z = Math.sin(t * 0.7) * 0.008;
-    if (rightShoulder) rightShoulder.rotation.z = -Math.sin(t * 0.7) * 0.008;
+
+    if (spine) {
+
+      // idle sway
+      spine.rotation.y =
+        Math.sin(t * 0.2) * 0.01;
+
+      spine.rotation.x = THREE.MathUtils.lerp(
+        spine.rotation.x,
+        -states.current.listening * 0.02,
+        delta * 2
+      );
+
+      // talking body movement
+      spine.rotation.z =
+        Math.sin(t * 1.5) *
+        0.01 *
+        states.current.speaking;
+    }
+
+    if (neck) {
+
+      neck.rotation.y =
+        Math.sin(t * 0.5) * 0.01;
+
+      neck.rotation.x =
+        Math.cos(t * 0.4) * 0.005;
+    }
+
+    if (leftShoulder) {
+      leftShoulder.rotation.z =
+        Math.sin(t * 0.7) * 0.008;
+    }
+
+    if (rightShoulder) {
+      rightShoulder.rotation.z =
+        -Math.sin(t * 0.7) * 0.008;
+    }
 
     // =========================================================
-    // NATURAL BLINK SYSTEM (Fixed Fast Blinking)
+    // 5. NATURAL BLINK SYSTEM
     // =========================================================
+
     blinkTimerRef.current += delta;
-    // Longer interval between blinks (3-7 seconds)
+
     if (blinkTimerRef.current > 5) {
-      const blinkCycle = (blinkTimerRef.current - 5) * 12; // Controlled speed
-      const blinkVal = Math.max(0, Math.sin(blinkCycle));
-      
-      vrm.expressionManager?.setValue('blink', blinkVal);
-      
+
+      const blinkCycle =
+        (blinkTimerRef.current - 5) * 12;
+
+      const blinkVal =
+        Math.max(0, Math.sin(blinkCycle));
+
+      vrm.expressionManager?.setValue(
+        'blink',
+        blinkVal
+      );
+
       if (blinkCycle > Math.PI) {
-        blinkTimerRef.current = Math.random() * 2; // Reset with random offset to prevent mechanical feel
+        blinkTimerRef.current =
+          Math.random() * 2;
       }
     }
 
     // =========================================================
-    // HEAD BEHAVIOR
+    // 6. HEAD BEHAVIOR
     // =========================================================
+
     if (head) {
-      // reset slight drift
+
+      // smooth damping
       head.rotation.y *= 0.94;
       head.rotation.x *= 0.94;
       head.rotation.z *= 0.94;
 
-      // idle micro movement
-      head.rotation.y += Math.sin(t * 0.25) * 0.006;
-      head.rotation.x += Math.cos(t * 0.18) * 0.003;
+      // idle movement
+      head.rotation.y +=
+        Math.sin(t * 0.25) * 0.006;
 
-      // thinking tilt & turn (Tilted forward-down and turned slightly to the right hand side)
-      // Recalibrated scale factors to account for the 1/0.06 = 16.6x frame-rate accumulation multiplier
+      head.rotation.x +=
+        Math.cos(t * 0.18) * 0.003;
+
       const isThinking = states.current.thinking;
-      head.rotation.x -= isThinking * 0.008; // Steady state: -0.133 rad (~ -7.6 degrees)
-      head.rotation.y -= isThinking * 0.009; // Steady state: -0.150 rad (~ -8.5 degrees)
-      head.rotation.z += isThinking * 0.005; // Steady state: +0.083 rad (~ +4.8 degrees)
+      const isListening = states.current.listening;
+      const isSpeaking = states.current.speaking;
 
-      // caring emotional tilt
-      if (states.current.mood === 'caring') {
-        head.rotation.z += Math.sin(t * 0.5) * 0.01;
-      }
+      // THINKING (Slight side tilt only, no up/down)
+      head.rotation.y -= isThinking * 0.005; // slight horizontal turn
+      head.rotation.z += isThinking * 0.015; // slight lateral tilt
 
-      // speaking movement
+      // LISTENING
+      head.rotation.x -= isListening * 0.02;
+
+      // TALKING HUMAN MOTION (Look Straight)
       if (avatarState === 'speaking') {
-        head.rotation.y += Math.sin(t * 1.5) * 0.01;
-        head.rotation.x += Math.cos(t * 1.2) * 0.005;
+
+        // VERY subtle head bop, but keep head looking straight (No side-to-side shaking)
+        head.rotation.y +=
+          Math.sin(t * 1.5) *
+          0.003;
+
+        head.rotation.x +=
+          Math.cos(t * 1.2) *
+          0.008;
+
+        head.rotation.z +=
+          Math.sin(t * 1.8) *
+          0.002;
+      }
+
+      // caring emotion
+      if (states.current.mood === 'caring') {
+
+        head.rotation.z +=
+          Math.sin(t * 0.5) * 0.01;
       }
     }
 
+    // =========================================================
     // 7. ARMS & GESTURES
-    const rightUpperArm = vrm.humanoid?.getNormalizedBoneNode('rightUpperArm');
-    const rightLowerArm = vrm.humanoid?.getNormalizedBoneNode('rightLowerArm');
-    const rightHand = vrm.humanoid?.getNormalizedBoneNode('rightHand');
-    const leftUpperArm = vrm.humanoid?.getNormalizedBoneNode('leftUpperArm');
-    
-    // Left arm remains completely relaxed at her side with gentle breathing
+    // =========================================================
+
+    const rightUpperArm =
+      vrm.humanoid?.getNormalizedBoneNode('rightUpperArm');
+
+    const rightLowerArm =
+      vrm.humanoid?.getNormalizedBoneNode('rightLowerArm');
+
+    const rightHand =
+      vrm.humanoid?.getNormalizedBoneNode('rightHand');
+
+    const leftUpperArm =
+      vrm.humanoid?.getNormalizedBoneNode('leftUpperArm');
+
+    const leftLowerArm =
+      vrm.humanoid?.getNormalizedBoneNode('leftLowerArm');
+
+    const leftHand =
+      vrm.humanoid?.getNormalizedBoneNode('leftHand');
+
+    // =========================================================
+    // LEFT ARM IDLE
+    // =========================================================
+
     if (leftUpperArm) {
-        leftUpperArm.rotation.z = 1.4 + Math.sin(t * 0.5) * 0.01;
-        leftUpperArm.rotation.x = 0;
-        leftUpperArm.rotation.y = 0;
-    }
-    
-    // Right arm goes up to touch the cheek during thinking
-    if (rightUpperArm && rightLowerArm) {
-        const isThinking = states.current.thinking;
-        
-        // Upper arm close to body (Z), swung forward/inward (Y), and twisted naturally (X)
-        rightUpperArm.rotation.z = THREE.MathUtils.lerp(-1.4, -1.25, isThinking);
-        rightUpperArm.rotation.x = THREE.MathUtils.lerp(Math.sin(t * 0.5) * 0.01, -0.3, isThinking);
-        rightUpperArm.rotation.y = THREE.MathUtils.lerp(0, 0.45, isThinking); // Positive Y swings RIGHT arm FORWARD in front of body
-        
-        // Fold right elbow naturally to bring forearm to cheek level, and angle it slightly inward (Y/Z)
-        rightLowerArm.rotation.x = THREE.MathUtils.lerp(0, -1.9, isThinking);
-        rightLowerArm.rotation.y = THREE.MathUtils.lerp(0, 0.25, isThinking); // Angles forearm slightly inward from elbow
-        rightLowerArm.rotation.z = THREE.MathUtils.lerp(0, -0.1, isThinking);
-        
-        // Bend right wrist slightly inward to touch the cheek/chin naturally
-        if (rightHand) {
-            rightHand.rotation.x = THREE.MathUtils.lerp(0, -0.3, isThinking);
-            rightHand.rotation.y = THREE.MathUtils.lerp(0, -0.2, isThinking);
-            rightHand.rotation.z = 0;
-        }
+
+      leftUpperArm.rotation.z =
+        1.4 +
+        Math.sin(t * 0.5) * 0.01;
+
+      leftUpperArm.rotation.x =
+        Math.sin(t * 0.3) * 0.01;
+
+      leftUpperArm.rotation.y = 0;
     }
 
-    // 8. EXPRESSIONS (Brightness Fix)
+    // =========================================================
+    // RIGHT ARM IDLE
+    // =========================================================
+
+    if (rightUpperArm) {
+
+      rightUpperArm.rotation.z =
+        -1.4 -
+        Math.sin(t * 0.5) * 0.01;
+
+      rightUpperArm.rotation.x =
+        Math.sin(t * 0.3) * 0.01;
+
+      rightUpperArm.rotation.y = 0;
+    }
+
+
+    // =========================================================
+    // 8. EXPRESSIONS
+    // =========================================================
+
     vrm.expressionManager?.setValue('happy', 0);
     vrm.expressionManager?.setValue('relaxed', 0);
     vrm.expressionManager?.setValue('surprised', 0);
 
-    const moodIntensity = states.current.moodIntensity;
-    if (states.current.mood === 'happy') vrm.expressionManager?.setValue('happy', 0.1 * moodIntensity);
-    // Removed 'relaxed' from caring to keep eyes open
-    if (avatarState === 'listening') vrm.expressionManager?.setValue('surprised', 0.05);
+    const moodIntensity =
+      states.current.moodIntensity;
 
-    // =========================================================
-    // NATURAL LIP SYNC
-    // =========================================================
-    if (avatarState === 'speaking') {
-      const speechPattern = Math.sin(t * 5.0) * 0.4 + Math.sin(t * 8.0) * 0.2;
-      const mouthOpen = THREE.MathUtils.clamp(Math.abs(speechPattern), 0, 0.6);
-      vrm.expressionManager?.setValue('aa', mouthOpen);
-      // Keep eyes bright even when talking
-      vrm.expressionManager?.setValue('relaxed', 0); 
-    } else {
-      vrm.expressionManager?.setValue('aa', 0);
+    if (states.current.mood === 'happy') {
+
+      vrm.expressionManager?.setValue(
+        'happy',
+        0.12 * moodIntensity
+      );
     }
 
+    if (avatarState === 'listening') {
+
+      vrm.expressionManager?.setValue(
+        'surprised',
+        0.05
+      );
+    }
+
+    // subtle smile during talking
+    if (avatarState === 'speaking') {
+
+      vrm.expressionManager?.setValue(
+        'happy',
+        0.08
+      );
+    }
+
+    // =========================================================
+    // 9. NATURAL LIP SYNC
+    // =========================================================
+
+    if (avatarState === 'speaking') {
+
+      const speechPattern =
+        Math.sin(t * 5.0) * 0.4 +
+        Math.sin(t * 8.0) * 0.2 +
+        Math.sin(t * 11.0) * 0.15;
+
+      const mouthOpen =
+        THREE.MathUtils.clamp(
+          Math.abs(speechPattern),
+          0,
+          0.65
+        );
+
+      vrm.expressionManager?.setValue(
+        'aa',
+        mouthOpen
+      );
+
+      vrm.expressionManager?.setValue(
+        'oh',
+        mouthOpen * 0.4
+      );
+
+      vrm.expressionManager?.setValue(
+        'ee',
+        mouthOpen * 0.25
+      );
+
+    } else {
+
+      vrm.expressionManager?.setValue('aa', 0);
+      vrm.expressionManager?.setValue('oh', 0);
+      vrm.expressionManager?.setValue('ee', 0);
+    }
+
+    // =========================================================
     // 10. BODY WEIGHT SHIFTING
-    vrm.scene.position.y = -0.8 + Math.sin(t * 0.5) * 0.004;
-    vrm.scene.position.x = Math.sin(t * 0.2) * 0.008;
-    
+    // =========================================================
+
+    vrm.scene.position.y =
+      -0.8 +
+      Math.sin(t * 0.5) * 0.004;
+
+    vrm.scene.position.x =
+      Math.sin(t * 0.2) * 0.008;
+
+    // subtle speaking bounce
+    if (avatarState === 'speaking') {
+
+      vrm.scene.position.y +=
+        Math.sin(t * 3.0) * 0.003;
+    }
+
+    // Base rotation (Math.PI faces the camera)
+    vrm.scene.rotation.y = Math.PI;
+
+    // listening lean
+    if (avatarState === 'listening') {
+      vrm.scene.rotation.y +=
+        Math.sin(t * 0.5) * 0.02;
+    }
+
+    // =========================================================
+    // FINAL VRM UPDATE
+    // =========================================================
+
     vrm.update(delta);
   };
 
