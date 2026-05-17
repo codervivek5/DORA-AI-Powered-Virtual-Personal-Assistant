@@ -232,5 +232,5 @@ tts_provider = TTSProvider()
 if __name__ == "__main__":
     import sys
 
-    test_text = "नमस्ते, मैं आपकी कैसे मदद कर सकता हूँ?" if len(sys.argv) < 2 else sys.argv[1]
+    test_text = "नमस्ते! मैं शालू हूँ। आज मौसम बड़ा सुहाना है!" if len(sys.argv) < 2 else sys.argv[1]
     tts_provider.speak(test_text)

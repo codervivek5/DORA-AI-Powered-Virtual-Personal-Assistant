@@ -67,7 +67,7 @@ class ShaluAssistant:
                 if detector.listen():
                     active_session = True
                     last_interaction_time = current_time # Start session timer immediately
-                    self.update_status("I'm listening...")
+                    self.update_status("सुन रही हूँ...")
                     user_text = transcribe_from_mic(phrase_time_limit=4)
                 else:
                     user_text = None
@@ -102,7 +102,7 @@ class ShaluAssistant:
                     last_processed_text = clean_input
 
                 logger.info(f"🧠 Query: '{user_text}'")
-                self.update_status("Thinking...")
+                self.update_status("सोच रही हूँ...")
 
                 try:
                     initial_state = {
@@ -120,7 +120,7 @@ class ShaluAssistant:
 
                     # SYNC FIX: Only trigger "Speaking" when audio playback actually starts
                     def trigger_sync():
-                        self.update_status("Speaking...")
+                        self.update_status("बोल रही हूँ...")
 
                     tts_provider.speak(spoken_response, callback=trigger_sync)
 
@@ -129,7 +129,7 @@ class ShaluAssistant:
 
                 except Exception as e:
                     logger.error(f"❌ Error: {e}")
-                    self.update_status("Error occurred.")
+                    self.update_status("कुछ गड़बड़ हो गई।")
                     time.sleep(1)
 
             time.sleep(0.01) # Reduced delay for faster loop

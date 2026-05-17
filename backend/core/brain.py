@@ -88,18 +88,19 @@ class MuseBrain:
         Processes user input, updates memory, and calls Llama via Ollama.
         """
         if not user_message or not user_message.strip():
-            return {"action": None, "param": None, "response": "I'm listening, tell me more."}
+            return {"action": None, "param": None, "response": "बोलो ना, सुन रही हूँ।"}
 
         # 1. Store the user's intent
-        self.conversation_history.append({"role": "user", "content": user_message})
+        wrapped_message = f"{user_message}\n[ध्यान रहे: जवाब सिर्फ हिंदी देवनागरी में देना है]"
+        self.conversation_history.append({"role": "user", "content": wrapped_message})
 
         # 2. Add dynamic context (Time/Date)
         now = datetime.now()
-        timestamp_ctx = f"\n\n[CONTEXT: Today is {now.strftime('%A, %B %d, %Y %I:%M %p')}]"
+        timestamp_ctx = f"\n\n[संदर्भ: आज {now.strftime('%d/%m/%Y')} है, समय {now.strftime('%I:%M %p')} है।]"
 
         # 3. Create context window (Last 8 messages for speed + System Prompt)
         context_window = [{"role": "system", "content": self.system_prompt + timestamp_ctx}]
-        context_window.extend(self.conversation_history[-8:])
+        context_window.extend(self.conversation_history[-6:])
 
         payload = {
             "model": self.model,
@@ -128,7 +129,7 @@ class MuseBrain:
             return {
                 "action": "ERROR",
                 "param": None,
-                "response": f"I'm having trouble connecting to my core right now. ({str(e)})"
+                "response": f"यार, कुछ गड़बड़ हो गई अंदर से। थोड़ी देर बाद try करो। ({str(e)})"
             }
 
     def clear_history(self):
