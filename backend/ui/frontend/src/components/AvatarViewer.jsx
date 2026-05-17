@@ -87,7 +87,7 @@ export default function AvatarViewer({ avatarState }) {
           borderRadius: '20px',
           backdropFilter: 'blur(5px)'
         }}>
-          Loading Ritu {progress}%
+          Loading Shalu {progress}%
         </div>
       </Html>
     )

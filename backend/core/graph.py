@@ -6,8 +6,8 @@ from core.actions.manager import action_manager
 from loguru import logger
 
 
-# 1. State Definition: This represents Ritu's 'Working Memory'
-class RituState(TypedDict):
+# 1. State Definition: This represents Shalu's 'Working Memory'
+class ShaluState(TypedDict):
     input: str  # User's raw input message
     chat_history: List[Dict]  # Historical record of the conversation
     action: Optional[str]  # Extracted or identified Action name
@@ -19,11 +19,11 @@ class RituState(TypedDict):
 
 # --- Nodes: Main execution stations of the graph ---
 
-def ritu_brain_node(state: RituState):
+def shalu_brain_node(state: ShaluState):
     """
     Listens to the user query and routes decision making through Brain (Ollama).
     """
-    logger.info(f"🧠 Ritu thinking... Input: {state['input']}")
+    logger.info(f"🧠 Shalu thinking... Input: {state['input']}")
 
     # Utilizing your original brain.chat logic (Variable names strictly preserved)
     result = brain.chat(state['input'])
@@ -41,7 +41,7 @@ def ritu_brain_node(state: RituState):
     }
 
 
-def ritu_action_node(state: RituState):
+def shalu_action_node(state: ShaluState):
     """
     Executes the recognized automated tasks using action_manager.
     """
@@ -65,11 +65,11 @@ def ritu_action_node(state: RituState):
 # --- Graph Construction: Architecture Setup ---
 
 # Instantiate core graph wrapper binding state dictionary model
-workflow = StateGraph(RituState)
+workflow = StateGraph(ShaluState)
 
 # Register execution stations as active Nodes
-workflow.add_node("brain", ritu_brain_node)
-workflow.add_node("action", ritu_action_node)
+workflow.add_node("brain", shalu_brain_node)
+workflow.add_node("action", shalu_action_node)
 
 # Set the primary operational point of entry
 workflow.set_entry_point("brain")
@@ -81,6 +81,6 @@ workflow.add_edge("brain", "action")
 workflow.add_edge("action", END)
 
 # Final engine compilation compilation phase
-ritu_app = workflow.compile()
+shalu_app = workflow.compile()
 
-logger.success("✅ Ritu LangGraph Engine Ready!")
+logger.success("✅ Shalu LangGraph Engine Ready!")

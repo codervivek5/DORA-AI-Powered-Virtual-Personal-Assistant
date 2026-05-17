@@ -5,20 +5,20 @@ ROOT = pyrootutils.setup_root(__file__, indicator="requirements.txt")
 
 import time
 
-# Import Ritu core modules
+# Import Shalu core modules
 from core.stt import transcribe_from_mic
 from core.tts import tts_provider
 from core.wakeword import wake_word_detector
-from core.graph import ritu_app
+from core.graph import shalu_app
 from config.settings import settings
 from loguru import logger
 import requests
 
-class RituAssistant:
+class ShaluAssistant:
     def __init__(self):
         self.wake_word = settings.WAKE_WORD_VARIANTS[0].title()
         self.session = requests.Session() # Persistent session for faster pings
-        logger.info(f"🚀 Ritu Assistant started. Wake Word: {self.wake_word}")
+        logger.info(f"🚀 Shalu Assistant started. Wake Word: {self.wake_word}")
 
     def update_status(self, text: str):
         """Map status text to Avatar state and notify backend rapidly"""
@@ -75,14 +75,25 @@ class RituAssistant:
             if user_text and user_text.strip():
                 clean_input = user_text.strip().strip('.').strip()
 
-                if clean_input.lower() in ["okay", "yes", "ok", "ritu"]:
-                    if clean_input.lower() == last_processed_text.lower() or clean_input.lower() == "ritu":
+                lower_input = clean_input.lower()
+
+                # Explicitly enter Standby Mode on "bye"
+                if lower_input in ["bye", "goodbye", "by", "tata", "alvida", "stop", "exit", "chalo bye"]:
+                    logger.info("👋 User said bye. Going to standby mode.")
+                    active_session = False
+                    self.update_status(f"Say '{self.wake_word}'...")
+                    tts_provider.speak("बाय! जब ज़रूरत हो, शालू बोलकर बुला लेना.", callback=lambda: self.update_status("idle"))
+                    continue
+
+                # Handle repetitive simple affirmatives to prevent loop lock
+                if lower_input in ["okay", "yes", "ok", "haan", "ha", "hm", "hmm"]:
+                    if lower_input == last_processed_text.lower():
                         repeat_count += 1
                     else:
                         repeat_count = 1
                     last_processed_text = clean_input
 
-                    if repeat_count >= 2 or clean_input.lower() == "ritu":
+                    if repeat_count >= 2:
                         active_session = False
                         self.update_status(f"Say '{self.wake_word}'...")
                         continue
@@ -104,7 +115,7 @@ class RituAssistant:
                         "final_output": ""
                     }
 
-                    final_state = ritu_app.invoke(initial_state)
+                    final_state = shalu_app.invoke(initial_state)
                     spoken_response = final_state.get("final_output", "मुझे समझ नहीं आया.")
 
                     # SYNC FIX: Only trigger "Speaking" when audio playback actually starts
@@ -124,5 +135,5 @@ class RituAssistant:
             time.sleep(0.01) # Reduced delay for faster loop
 
 if __name__ == "__main__":
-    assistant = RituAssistant()
+    assistant = ShaluAssistant()
     assistant.start()

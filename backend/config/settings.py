@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     SYSTEM_PROMPT:str = system_prompt
     
     # Wake Word Settings
-    WAKE_WORD_VARIANTS: list[str] = ["ritu", "रितु", "रीतु"]
+    WAKE_WORD_VARIANTS: list[str] = ["shalu", "शालू", "शालु","shaalu","shaaluuu","shaaaluu","shall","shallu","shalluu","chalu","start"]
     
     # STT Settings
     USE_LOCAL_STT: bool = True
@@ -31,8 +31,8 @@ class Settings(BaseSettings):
     TTS_PROVIDER: str = "sarvam"
     F5_MODEL_ID: str = "SPRINGLab/F5-Hindi-24KHz"
     SARVAM_API_KEY: Optional[str] = None
-    SARVAM_MODEL: str = "bulbul:v2" # Options: bulbul:v2, bulbul:v3, ritu (if available)
-    SARVAM_VOICE: str = "female"     # Options: male, female, ritu
+    SARVAM_MODEL: str = "bulbul:v2" # Options: bulbul:v2, bulbul:v3, shalu (if available)
+    SARVAM_VOICE: str = "female"     # Options: male, female, shalu
     
     model_config = {
         "env_file": os.path.join(Path(__file__).parent.parent, ".env"),

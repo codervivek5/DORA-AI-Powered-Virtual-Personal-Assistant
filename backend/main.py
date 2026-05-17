@@ -10,7 +10,7 @@ import  sys
 import json
 import time
 
-# Import Ritu core modules
+# Import Shalu core modules
 from core.brain import brain
 from core.stt import stt_provider
 from core.tts import tts_provider
@@ -26,11 +26,11 @@ async def lifespan(app: FastAPI):
     threading.Thread(target=start_assistant, daemon=True).start()
     yield
     # Shutdown logic (optional)
-    logger.info("Shutting down Ritu AI...")
+    logger.info("Shutting down Shalu AI...")
 
 app = FastAPI(
-    title="Ritu AI - Virtual Personal Assistant API",
-    description="Ritu AI-powered virtual personal assistant with chat, voice, and task management capabilities",
+    title="Shalu AI - Virtual Personal Assistant API",
+    description="Shalu AI-powered virtual personal assistant with chat, voice, and task management capabilities",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -98,7 +98,7 @@ class AvatarStateEvent(BaseModel):
 async def root():
     """Root endpoint with API information"""
     return {
-        "message": "Ritu AI - Virtual Personal Assistant API",
+        "message": "Shalu AI - Virtual Personal Assistant API",
         "version": "1.0.0",
         "status": "running",
         "endpoints": {
@@ -120,7 +120,7 @@ async def health_check():
 async def chat_endpoint(message: ChatMessage):
     """
     Chat endpoint for processing user messages and generating AI responses
-    Uses Ritu Brain (Ollama) for intelligent responses
+    Uses Shalu Brain (Ollama) for intelligent responses
     """
     try:
         # Add user message to history
@@ -308,7 +308,7 @@ async def avatar_event_webhook(event: AvatarStateEvent):
     return {"status": "broadcasted", "state": event.state}
 
 def start_assistant():
-    """Start the ritu assistant background process safely with hardware reset"""
+    """Start the shalu assistant background process safely with hardware reset"""
     try:
         # 1. Surgical kill: Terminate any lingering assistant processes
         logger.info("🧹 Cleaning up hardware handles...")
@@ -325,7 +325,7 @@ def start_assistant():
         current_dir = os.path.dirname(os.path.abspath(__file__))
         assistant_path = os.path.join(current_dir, "core", "assistant.py")
         
-        logger.info(f"🚀 Launching Ritu Assistant: {assistant_path}")
+        logger.info(f"🚀 Launching Shalu Assistant: {assistant_path}")
         
         # Explicitly set PYTHONPATH to current directory
         env = os.environ.copy()
@@ -334,7 +334,7 @@ def start_assistant():
         # Launch fresh subprocess
         subprocess.Popen([python_executable, assistant_path], cwd=current_dir, env=env)
     except Exception as e:
-        logger.error(f"❌ Failed to launch Ritu Assistant: {e}")
+        logger.error(f"❌ Failed to launch Shalu Assistant: {e}")
 
 if __name__ == "__main__":
     uvicorn.run(
