@@ -1,3 +1,4 @@
+import numpy as np
 try:
     import sounddevice as sd
     SD_AVAILABLE = True
@@ -31,11 +32,19 @@ try:
 except ImportError:
     WHISPER_AVAILABLE = False
 
-import numpy as np
 
 def get_best_mic():
     """Find the best microphone device using sounddevice"""
     try:
+        # 1. Always check and prefer the active system default input device if it is valid
+        default_input = sd.default.device[0]
+        if default_input is not None and default_input >= 0:
+            devices = sd.query_devices()
+            if default_input < len(devices) and devices[default_input]['max_input_channels'] > 0:
+                print(f"Auto-selected system default mic: {devices[default_input]['name']} (index {default_input})")
+                return default_input
+
+        # Fallback to listing all input devices
         devices = sd.query_devices()
         mic_list = []
         for i, dev in enumerate(devices):
@@ -48,9 +57,10 @@ def get_best_mic():
         # Priority: MacBook Pro Microphone or similar
         for idx, name in mic_list:
             if "microphone" in name.lower() or "mic" in name.lower():
-                print(f"Auto-selected mic: {name} (index {idx})")
+                print(f"Auto-selected mic by name: {name} (index {idx})")
                 return idx
         
+        print(f"Auto-selected fallback mic: {mic_list[0][1]} (index {mic_list[0][0]})")
         return mic_list[0][0]
     except Exception as e:
         print(f"Error listing microphones: {e}")
@@ -169,7 +179,8 @@ class STTProvider:
             with open(audio_file_path, 'rb') as f:
                 data = {"model": "saarika:v2.5"} 
                 files = {"file": ("audio.wav", f, "audio/wav")}
-                response = requests.post(url, headers=headers, files=files, data=data)
+                # Added timeout=8.0 to prevent indefinite freezing during network delays
+                response = requests.post(url, headers=headers, files=files, data=data, timeout=8.0)
                 
                 if response.status_code == 200:
                     return response.json().get("transcript", "")

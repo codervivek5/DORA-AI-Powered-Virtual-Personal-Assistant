@@ -88,7 +88,8 @@ class TTSProvider:
         }
 
         try:
-            response = requests.post(url, json=payload, headers=headers)
+            # Added timeout=10.0 to prevent indefinite freezing during network delays
+            response = requests.post(url, json=payload, headers=headers, timeout=10.0)
             if response.status_code == 200:
                 data = response.json()
                 audio_base64 = data.get("audios", [None])[0] or data.get("audio")
@@ -202,6 +203,8 @@ class TTSProvider:
                     try:
                         with sd.OutputStream(samplerate=sample_rate, channels=len(audio_data.shape) if len(audio_data.shape) > 1 else 1) as stream:
                             stream.write(audio_data)
+                            # Added 0.6s sleep padding to allow bluetooth and hardware buffers to fully flush and play the last word
+                            time.sleep(0.6)
                         break # Success
                     except Exception as e:
                         if attempt < MAX_RETRIES - 1:

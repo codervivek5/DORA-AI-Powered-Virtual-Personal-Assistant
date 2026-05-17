@@ -109,8 +109,12 @@ export const useAvatarAnimations = (vrm, avatarState) => {
       head.rotation.y += Math.sin(t * 0.25) * 0.006;
       head.rotation.x += Math.cos(t * 0.18) * 0.003;
 
-      // thinking tilt
-      head.rotation.x += states.current.thinking * 0.06;
+      // thinking tilt & turn (Tilted forward-down and turned slightly to the right hand side)
+      // Recalibrated scale factors to account for the 1/0.06 = 16.6x frame-rate accumulation multiplier
+      const isThinking = states.current.thinking;
+      head.rotation.x -= isThinking * 0.008; // Steady state: -0.133 rad (~ -7.6 degrees)
+      head.rotation.y -= isThinking * 0.009; // Steady state: -0.150 rad (~ -8.5 degrees)
+      head.rotation.z += isThinking * 0.005; // Steady state: +0.083 rad (~ +4.8 degrees)
 
       // caring emotional tilt
       if (states.current.mood === 'caring') {
@@ -127,14 +131,36 @@ export const useAvatarAnimations = (vrm, avatarState) => {
     // 7. ARMS & GESTURES
     const rightUpperArm = vrm.humanoid?.getNormalizedBoneNode('rightUpperArm');
     const rightLowerArm = vrm.humanoid?.getNormalizedBoneNode('rightLowerArm');
+    const rightHand = vrm.humanoid?.getNormalizedBoneNode('rightHand');
     const leftUpperArm = vrm.humanoid?.getNormalizedBoneNode('leftUpperArm');
     
-    if (leftUpperArm) leftUpperArm.rotation.z = 1.4 + Math.sin(t * 0.5) * 0.01;
+    // Left arm remains completely relaxed at her side with gentle breathing
+    if (leftUpperArm) {
+        leftUpperArm.rotation.z = 1.4 + Math.sin(t * 0.5) * 0.01;
+        leftUpperArm.rotation.x = 0;
+        leftUpperArm.rotation.y = 0;
+    }
+    
+    // Right arm goes up to touch the cheek during thinking
     if (rightUpperArm && rightLowerArm) {
         const isThinking = states.current.thinking;
-        rightUpperArm.rotation.z = THREE.MathUtils.lerp(-1.4, -1.1, isThinking);
-        rightUpperArm.rotation.x = THREE.MathUtils.lerp(Math.sin(t * 0.5) * 0.01, -0.4, isThinking);
-        rightLowerArm.rotation.x = THREE.MathUtils.lerp(0, -1.0, isThinking);
+        
+        // Upper arm close to body (Z), swung forward/inward (Y), and twisted naturally (X)
+        rightUpperArm.rotation.z = THREE.MathUtils.lerp(-1.4, -1.25, isThinking);
+        rightUpperArm.rotation.x = THREE.MathUtils.lerp(Math.sin(t * 0.5) * 0.01, -0.3, isThinking);
+        rightUpperArm.rotation.y = THREE.MathUtils.lerp(0, 0.45, isThinking); // Positive Y swings RIGHT arm FORWARD in front of body
+        
+        // Fold right elbow naturally to bring forearm to cheek level, and angle it slightly inward (Y/Z)
+        rightLowerArm.rotation.x = THREE.MathUtils.lerp(0, -1.9, isThinking);
+        rightLowerArm.rotation.y = THREE.MathUtils.lerp(0, 0.25, isThinking); // Angles forearm slightly inward from elbow
+        rightLowerArm.rotation.z = THREE.MathUtils.lerp(0, -0.1, isThinking);
+        
+        // Bend right wrist slightly inward to touch the cheek/chin naturally
+        if (rightHand) {
+            rightHand.rotation.x = THREE.MathUtils.lerp(0, -0.3, isThinking);
+            rightHand.rotation.y = THREE.MathUtils.lerp(0, -0.2, isThinking);
+            rightHand.rotation.z = 0;
+        }
     }
 
     // 8. EXPRESSIONS (Brightness Fix)
