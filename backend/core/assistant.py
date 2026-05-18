@@ -25,13 +25,13 @@ class ShaluAssistant:
         avatar_state = "idle"
         lower_text = text.lower()
         
-        if "listening" in lower_text:
+        if "listening" in lower_text or "सुन रही" in lower_text:
             avatar_state = "listening"
-        elif "thinking" in lower_text:
+        elif "thinking" in lower_text or "सोच रही" in lower_text:
             avatar_state = "thinking"
-        elif "speaking" in lower_text:
+        elif "speaking" in lower_text or "बोल रही" in lower_text:
             avatar_state = "speaking"
-        elif "say" in lower_text:
+        elif "say" in lower_text or "idle" in lower_text:
             avatar_state = "idle"
 
         try:
