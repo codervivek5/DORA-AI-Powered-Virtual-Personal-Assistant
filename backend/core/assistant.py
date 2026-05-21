@@ -115,24 +115,54 @@ class ShaluAssistant:
                 self.update_status("सोच रही हूँ...")
 
                 try:
-                    initial_state = {
-                        "input": user_text,
-                        "chat_history": [],
-                        "action": None,
-                        "param": None,
-                        "response": "",
-                        "raw_ai_response": {},
-                        "final_output": ""
-                    }
+                    from core.brain import brain
+                    import queue
+                    import threading
 
-                    final_state = shalu_app.invoke(initial_state)
-                    spoken_response = final_state.get("final_output", "मुझे समझ नहीं आया.")
-
-                    # SYNC FIX: Only trigger "Speaking" when audio playback actually starts
-                    def trigger_sync():
-                        self.update_status("बोल रही हूँ...")
-
-                    tts_provider.speak(spoken_response, callback=trigger_sync)
+                    sentence_queue = queue.Queue()
+                    
+                    def tts_worker():
+                        while True:
+                            sentence = sentence_queue.get()
+                            if sentence is None:  # Sentinel to stop thread
+                                break
+                            
+                            def trigger_sync():
+                                self.update_status("बोल रही हूँ...")
+                            
+                            # Speak the chunk
+                            tts_provider.speak(sentence, callback=trigger_sync)
+                            sentence_queue.task_done()
+                            
+                    tts_thread = threading.Thread(target=tts_worker, daemon=True)
+                    tts_thread.start()
+                    
+                    final_state = None
+                    streamed_any = False
+                    for chunk in brain.chat_stream(user_text):
+                        if chunk["type"] == "sentence":
+                            sentence_queue.put(chunk["text"])
+                            streamed_any = True
+                        elif chunk["type"] == "final":
+                            final_state = chunk["state"]
+                            
+                    # Once stream is done
+                    if final_state:
+                        # Fallback: if streaming parser failed to find RESPONSE: tag, speak the parsed response now
+                        if not streamed_any and final_state.get("response"):
+                            sentence_queue.put(final_state.get("response"))
+                            
+                        # Execute action if any
+                        if final_state.get("action"):
+                            from core.actions.manager import action_manager
+                            action_result = action_manager.parse_and_execute(final_state)
+                            # If LLM didn't provide a response, but action generated a fallback response, speak it
+                            if not final_state.get("response") and action_result and action_result != "ठीक है 😊":
+                                sentence_queue.put(action_result)
+                            
+                    # Stop the TTS thread after all sentences are spoken
+                    sentence_queue.put(None)
+                    tts_thread.join()
 
                     active_session = True
                     last_interaction_time = time.time()
@@ -146,4 +176,4 @@ class ShaluAssistant:
 
 if __name__ == "__main__":
     assistant = ShaluAssistant()
-    assistant.start()
+    assistant.start()   

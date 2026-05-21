@@ -167,6 +167,102 @@ class MuseBrain:
                 "response": f"यार, कुछ गड़बड़ हो गई अंदर से। थोड़ी देर बाद try करो। ({str(e)})"
             }
 
+    def chat_stream(self, user_message: str):
+        """
+        Streaming intelligence loop. Yields parsed sentences as they generate, 
+        and finally yields the complete structured response for action execution.
+        """
+        import json
+        
+        if not user_message or not user_message.strip():
+            yield {"type": "sentence", "text": "बोलो ना, सुन रही हूँ।"}
+            yield {"type": "final", "state": {"action": None, "param": None, "response": "बोलो ना, सुन रही हूँ।"}}
+            return
+
+        wrapped_message = f"{user_message}\n[ध्यान रहे: जवाब सिर्फ हिंदी देवनागरी में देना है]"
+        self.conversation_history.append({"role": "user", "content": wrapped_message})
+
+        now = datetime.now()
+        timestamp_ctx = f"\n\n[संदर्भ: आज {now.strftime('%d/%m/%Y')} है, समय {now.strftime('%I:%M %p')} है।]"
+
+        context_window = [{"role": "system", "content": self.system_prompt + timestamp_ctx}]
+        context_window.extend(self.conversation_history[-6:])
+
+        payload = {
+            "model": self.model,
+            "messages": context_window,
+            "stream": True,
+            "options": {
+                "temperature": 0.6,
+                "top_p": 0.9
+            }
+        }
+
+        full_response = ""
+        response_started = False
+        sentence_buffer = ""
+        action_param_buffer = ""
+        
+        try:
+            with httpx.Client(timeout=45.0) as client:
+                with client.stream("POST", f"{self.base_url}/api/chat", json=payload) as response:
+                    response.raise_for_status()
+                    for line in response.iter_lines():
+                        if line:
+                            data = json.loads(line)
+                            chunk = data.get("message", {}).get("content", "")
+                            full_response += chunk
+                            
+                            if not response_started:
+                                action_param_buffer += chunk
+                                # Watch for the RESPONSE: delimiter
+                                if "RESPONSE:" in action_param_buffer:
+                                    response_started = True
+                                    parts = action_param_buffer.split("RESPONSE:", 1)
+                                    if len(parts) > 1:
+                                        sentence_buffer += parts[1]
+                            else:
+                                sentence_buffer += chunk
+                                
+                                # Chunk by sentence endings (Hindi purna viram, English dot, etc)
+                                if any(punct in sentence_buffer for punct in ['।', '.', '?', '!', '\n']):
+                                    # Split by the first punctuation found
+                                    # To be robust, we just take the whole buffer up to the punctuation
+                                    # For simplicity, if it contains punctuation, we yield the whole buffer
+                                    # A better way: find the punctuation index
+                                    punct_idx = -1
+                                    for p in ['।', '.', '?', '!', '\n']:
+                                        idx = sentence_buffer.find(p)
+                                        if idx != -1 and (punct_idx == -1 or idx < punct_idx):
+                                            punct_idx = idx
+                                            
+                                    if punct_idx != -1:
+                                        # Extract the sentence including the punctuation
+                                        sentence = sentence_buffer[:punct_idx+1].strip()
+                                        sentence = self._fix_gender(sentence)
+                                        
+                                        if sentence and len(sentence) > 1:
+                                            yield {"type": "sentence", "text": sentence}
+                                            
+                                        # Keep the rest in the buffer
+                                        sentence_buffer = sentence_buffer[punct_idx+1:]
+                    
+                    # Yield any remaining text in the buffer
+                    if sentence_buffer.strip():
+                        sentence = self._fix_gender(sentence_buffer.strip())
+                        if sentence:
+                            yield {"type": "sentence", "text": sentence}
+                            
+            self.conversation_history.append({"role": "assistant", "content": full_response})
+            self._save_memory()
+            
+            parsed = self._parse_structured_response(full_response)
+            yield {"type": "final", "state": parsed}
+
+        except Exception as e:
+            yield {"type": "sentence", "text": "कुछ गड़बड़ हो गई, मुझे समझ नहीं आया।"}
+            yield {"type": "final", "state": {"action": "ERROR", "param": None, "response": str(e)}}
+
     def clear_history(self):
         """Reset Muse's memory."""
         self.conversation_history = []
