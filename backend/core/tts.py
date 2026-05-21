@@ -68,17 +68,14 @@ class TTSProvider:
     # EDGE TTS — Primary natural voice engine
     # --------------------------------------------------
 
-    def _get_audio_edge(self, text: str) -> Tuple[Optional[np.ndarray], int]:
-        """Fetch audio from Microsoft Edge TTS (free, natural Alexa-like voice)"""
+    def _get_audio_edge(self, text: str) -> Optional[bytes]:
+        """Fetch audio bytes from Microsoft Edge TTS"""
         if not EDGE_TTS_AVAILABLE:
             logger.error("edge-tts not installed. Run: pip install edge-tts")
-            return None, 16000
+            return None
 
         try:
-            # edge-tts is async — we run it in a blocking way using asyncio
-            audio_bytes = asyncio.run(self._edge_tts_generate(text))
-            if audio_bytes:
-                return self._bytes_to_audio_data(audio_bytes)
+            return asyncio.run(self._edge_tts_generate(text))
         except RuntimeError:
             # If an event loop is already running (e.g. Jupyter), use nest_asyncio approach
             try:
@@ -86,12 +83,11 @@ class TTSProvider:
                 asyncio.set_event_loop(loop)
                 audio_bytes = loop.run_until_complete(self._edge_tts_generate(text))
                 loop.close()
-                if audio_bytes:
-                    return self._bytes_to_audio_data(audio_bytes)
+                return audio_bytes
             except Exception as e:
                 logger.error(f"Edge TTS async fallback error: {e}")
 
-        return None, 16000
+        return None
 
     async def _edge_tts_generate(self, text: str) -> Optional[bytes]:
         """Async Edge TTS generation — saves to temp file and reads bytes"""
@@ -247,22 +243,34 @@ class TTSProvider:
         try:
             logger.info(f"🎤 Generating speech: {text[:50]}...")
 
-            audio_data = None
-            sample_rate = 22050  # Edge TTS default
-
             if self.provider == "edge":
-                audio_data, sample_rate = self._get_audio_edge(text)
+                # FAST PATH: Play MP3 directly via afplay (No FFMPEG/Numpy overhead)
+                audio_bytes = self._get_audio_edge(text)
+                if audio_bytes:
+                    import subprocess
+                    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+                        tmp.write(audio_bytes)
+                        tmp_path = tmp.name
+                    
+                    if callback:
+                        try: callback()
+                        except: pass
+                        
+                    subprocess.run(["afplay", tmp_path], check=True)
+                    os.unlink(tmp_path)
+                    logger.success("✅ Playback completed (Edge Fast Path)")
+                    return True
+                
                 # Auto-fallback to Sarvam if Edge fails
-                if audio_data is None and self.api_key:
+                if self.api_key:
                     logger.warning("Edge TTS failed, falling back to Sarvam...")
-                    audio_data, sample_rate = self._get_audio_sarvam(text)
+                    self.provider = "sarvam" # Temporary fallback for this request
 
-            elif self.provider == "sarvam":
+            audio_data = None
+            sample_rate = 16000
+
+            if self.provider == "sarvam":
                 audio_data, sample_rate = self._get_audio_sarvam(text)
-                # Auto-fallback to Edge if Sarvam fails
-                if audio_data is None and EDGE_TTS_AVAILABLE:
-                    logger.warning("Sarvam TTS failed, falling back to Edge TTS...")
-                    audio_data, sample_rate = self._get_audio_edge(text)
 
             elif self.provider == "f5":
                 logger.warning("F5-TTS local provider not fully implemented.")

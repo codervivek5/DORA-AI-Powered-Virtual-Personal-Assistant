@@ -25,6 +25,12 @@ try:
     SARVAM_AVAILABLE = True
 except ImportError:
     SARVAM_AVAILABLE = False
+    
+try:
+    import speech_recognition as sr
+    SR_AVAILABLE = True
+except ImportError:
+    SR_AVAILABLE = False
 
 try:
     from pywhispercpp.model import Model
@@ -97,10 +103,11 @@ class STTProvider:
                 self.sarvam_client = None
     
     def record_audio(self, duration: float = 5.0) -> Optional[str]:
-        """Record audio from microphone using ffmpeg on macOS for absolute, freeze-proof stability with a sounddevice fallback"""
-        import subprocess
-        
-        # Create a temporary file path
+        """Record audio dynamically using Voice Activity Detection (VAD). Stops immediately when user stops speaking."""
+        if not SR_AVAILABLE:
+            print("❌ speech_recognition not installed. Please run: pip install SpeechRecognition pyaudio")
+            return None
+            
         try:
             temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
             temp_file_path = temp_file.name
@@ -108,56 +115,42 @@ class STTProvider:
         except Exception as e:
             print(f"Error creating temp file: {e}")
             return None
+            
+        recognizer = sr.Recognizer()
+        # Fast response settings
+        recognizer.pause_threshold = 0.8
+        recognizer.energy_threshold = 300
+        recognizer.dynamic_energy_threshold = True
 
-        # Check if ffmpeg is available at /opt/homebrew/bin/ffmpeg or in PATH
-        ffmpeg_bin = "/opt/homebrew/bin/ffmpeg"
-        if not os.path.exists(ffmpeg_bin):
-            ffmpeg_bin = "ffmpeg"  # fallback to PATH
-            
-        print(f"🎤 Recording {duration}s from system default mic using ffmpeg...")
-        
         try:
-            # We record using ffmpeg via a subprocess which is 100% immune to Python GIL and PortAudio C-level hangs!
-            cmd = [
-                ffmpeg_bin,
-                "-f", "avfoundation",
-                "-i", ":default",
-                "-t", str(duration),
-                "-ar", "16000",
-                "-ac", "1",
-                "-y",
-                temp_file_path
-            ]
-            
-            # Execute with a safety timeout to guarantee it never blocks the main Python process
-            subprocess.run(
-                cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=duration + 3.0,
-                check=True
-            )
-            
-            # Verify file exists and is not empty
-            if os.path.exists(temp_file_path) and os.path.getsize(temp_file_path) > 1000:
-                return temp_file_path
-            else:
-                print("❌ ffmpeg recorded file is empty or missing.")
-                return None
+            with sr.Microphone() as source:
+                print(f"🎤 Listening dynamically (up to {duration}s)...")
+                # Adjust for ambient noise quickly
+                recognizer.adjust_for_ambient_noise(source, duration=0.2)
                 
-        except subprocess.TimeoutExpired:
-            print("⚠️ ffmpeg recording timed out! Force-killing process...")
-            try:
-                os.unlink(temp_file_path)
-            except:
-                pass
+                # Listen with VAD
+                audio_data = recognizer.listen(
+                    source, 
+                    timeout=5.0, # Timeout if no speech is detected at all
+                    phrase_time_limit=duration
+                )
+                
+                # Save to wav file
+                with open(temp_file_path, "wb") as f:
+                    f.write(audio_data.get_wav_data())
+                    
+                return temp_file_path
+                
+        except sr.WaitTimeoutError:
+            # Normal timeout when no speech is detected
+            try: os.unlink(temp_file_path)
+            except: pass
             return None
         except Exception as e:
-            print(f"⚠️ ffmpeg recording failed: {e}. Falling back to sounddevice recording...")
-            try:
-                os.unlink(temp_file_path)
-            except:
-                pass
+            print(f"⚠️ VAD recording failed: {e}")
+            try: os.unlink(temp_file_path)
+            except: pass
+            return None
             return self._record_audio_sounddevice(duration)
 
     def _record_audio_sounddevice(self, duration: float = 5.0) -> Optional[str]:

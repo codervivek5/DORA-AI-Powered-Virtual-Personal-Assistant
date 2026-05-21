@@ -67,8 +67,18 @@ class ShaluAssistant:
                 if detector.listen():
                     active_session = True
                     last_interaction_time = current_time # Start session timer immediately
+                    
+                    # Acknowledge the wake word
+                    import random
+                    ack_word = random.choice(["हाँ सर?", "जी सर?", "बताइए सर?"])
+                    
+                    def ack_sync():
+                        self.update_status("बोल रही हूँ...")
+                        
+                    tts_provider.speak(ack_word, callback=ack_sync)
+                    
                     self.update_status("सुन रही हूँ...")
-                    user_text = transcribe_from_mic(phrase_time_limit=4)
+                    user_text = transcribe_from_mic(phrase_time_limit=10.0) # Using 10.0 as it dynamically stops via VAD now
                 else:
                     user_text = None
 
