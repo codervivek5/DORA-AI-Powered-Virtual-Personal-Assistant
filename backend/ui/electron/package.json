@@ -1,7 +1,7 @@
 {
-  "name": "electron",
+  "name": "jenny-desktop",
   "version": "1.0.0",
-  "description": "",
+  "description": "Jenny AI desktop assistant",
   "main": "main.js",
   "scripts": {
     "start": "electron ."

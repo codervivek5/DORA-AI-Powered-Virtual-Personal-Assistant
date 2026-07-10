@@ -41,6 +41,8 @@ except ImportError:
 
 def get_best_mic():
     """Find the best microphone device using sounddevice"""
+    if not SD_AVAILABLE:
+        return 0
     try:
         # 1. Always check and prefer the active system default input device if it is valid
         default_input = sd.default.device[0]
@@ -150,11 +152,13 @@ class STTProvider:
             print(f"⚠️ VAD recording failed: {e}")
             try: os.unlink(temp_file_path)
             except: pass
-            return None
             return self._record_audio_sounddevice(duration)
 
     def _record_audio_sounddevice(self, duration: float = 5.0) -> Optional[str]:
         """Record audio from microphone at native samplerate with automatic timeout protection and in-memory downsampling for absolute stability on macOS"""
+        if not SD_AVAILABLE:
+            print("❌ sounddevice is not available. Cannot record audio.")
+            return None
         import threading
         
         # Ensure any previous audio is stopped

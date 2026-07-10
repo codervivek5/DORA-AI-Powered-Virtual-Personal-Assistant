@@ -4,7 +4,7 @@ import subprocess
 import datetime
 
 class SystemActions:
-    """Muse's hands - System level controls for macOS"""
+    """Jenny's hands - System level controls for macOS"""
 
     def execute_applescript(self, script: str):
         """Helper to run AppleScript commands"""

@@ -8,7 +8,7 @@ echo "🧹 Cleaning up existing ports..."
 lsof -ti:8000,5173 | xargs kill -9 2>/dev/null
 
 echo "------------------------------------------"
-echo "🚀 Starting Shalu AI Ecosystem..."
+echo "🚀 Starting Jenny AI Ecosystem..."
 echo "------------------------------------------"
 
 # 1. Start Backend (FastAPI + Assistant)

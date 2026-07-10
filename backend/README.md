@@ -1,21 +1,21 @@
 <div align="center">
-<h1>Muse - AI-Powered Virtual Personal Assistant 🤖</h1>
+<h1>Jenny - AI-Powered Virtual Personal Assistant 🤖</h1>
 </div>
 
 <div align="center">
  
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)
-![Visitors](https://api.visitorbadge.io/api/visitors?path=codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant&countColor=%2523263759&style=for-the-badge)
-![GitHub forks](https://img.shields.io/github/forks/codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
-![GitHub Repo stars](https://img.shields.io/github/stars/codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
-![GitHub contributors](https://img.shields.io/github/contributors/codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
-![GitHub last commit](https://img.shields.io/github/last-commit/codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
-![GitHub repo size](https://img.shields.io/github/repo-size/codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
-![Github](https://img.shields.io/github/license/codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
-![GitHub issues](https://img.shields.io/github/issues/codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
-![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
-![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
+![Visitors](https://api.visitorbadge.io/api/visitors?path=codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant&countColor=%2523263759&style=for-the-badge)
+![GitHub forks](https://img.shields.io/github/forks/codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
+![GitHub Repo stars](https://img.shields.io/github/stars/codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
+![GitHub contributors](https://img.shields.io/github/contributors/codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
+![GitHub last commit](https://img.shields.io/github/last-commit/codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
+![GitHub repo size](https://img.shields.io/github/repo-size/codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
+![Github](https://img.shields.io/github/license/codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
+![GitHub issues](https://img.shields.io/github/issues/codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
+![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
+![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant?style=for-the-badge)
 
 </div>
 
@@ -39,7 +39,7 @@
 
 ## 👋 Introduction
 
-**Muse** is your AI-powered productivity companion designed to simplify your daily life. From task automation to smart reminders and intelligent information search, Muse leverages Generative AI, LLMs, RAG, and Agentic AI to bring you a truly smart virtual assistant experience.
+**Jenny** is your AI-powered productivity companion designed to simplify your daily life. From task automation to smart reminders and intelligent information search, Jenny leverages Generative AI, LLMs, RAG, and Agentic AI to bring you a truly smart virtual assistant experience.
 
 ---
 
@@ -52,7 +52,7 @@ _Coming Soon_
 ## 📁 Repository
 
 Fed up with switching between apps for tasks, reminders, emails, and automation?  
-**Muse** combines them all — with AI at the core — making your productivity seamless.
+**Jenny** combines them all — with AI at the core — making your productivity seamless.
 
 ---
 
@@ -89,7 +89,7 @@ Fed up with switching between apps for tasks, reminders, emails, and automation?
 
 ```
 
-Muse/
+Jenny/
 ├── frontend/        # Mobile & Web app (React)
 ├── backend/         # API Server, AI Layer, MCP Server (Python FastAPI)
 ├── docs/            # Project Documentation
@@ -106,13 +106,13 @@ We ❤️ contributions from the community! Please follow these steps:
 **1.** Fork the repository:
 
 ```bash
-git clone https://github.com/codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant.git
+git clone https://github.com/codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant.git
 ````
 
 **2.** Navigate to project directory & install dependencies:
 
 ```bash
-cd DORA-AI-Powered-Virtual-Personal-Assistant
+cd Jenny-AI-Powered-Virtual-Personal-Assistant
 ```
 
 **Frontend Setup:**
@@ -151,8 +151,8 @@ git push origin <your-branch-name>
 
 ## ❤️ Our Contributors
 
-<a href="https://github.com/codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant" />
+<a href="https://github.com/codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant" />
 </a>
 
 ---
@@ -190,12 +190,12 @@ For queries, feedback, or collaboration:
 
 ## 🛡️ License
 
-This project is licensed under the [MIT License](https://github.com/codervivek5/DORA-AI-Powered-Virtual-Personal-Assistant/blob/main/LICENSE).
+This project is licensed under the [MIT License](https://github.com/codervivek5/Jenny-AI-Powered-Virtual-Personal-Assistant/blob/main/LICENSE).
 
 ---
 
 <div align="center">
-<h3>© 2024 Coder Vivek - Creator of Muse</h3>
+<h3>© 2024 Coder Vivek - Creator of Jenny</h3>
 </div>
 
 <p align="right">(<a href="#top">Back to top</a>)</p>

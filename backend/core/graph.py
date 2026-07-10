@@ -6,8 +6,8 @@ from core.actions.manager import action_manager
 from loguru import logger
 
 
-# 1. State Definition: This represents Shalu's 'Working Memory'
-class ShaluState(TypedDict):
+# 1. State Definition: This represents Jenny's 'Working Memory'
+class JennyState(TypedDict):
     input: str  # User's raw input message
     chat_history: List[Dict]  # Historical record of the conversation
     action: Optional[str]  # Extracted or identified Action name
@@ -19,11 +19,11 @@ class ShaluState(TypedDict):
 
 # --- Nodes: Main execution stations of the graph ---
 
-def shalu_brain_node(state: ShaluState):
+def jenny_brain_node(state: JennyState):
     """
     Listens to the user query and routes decision making through Brain (Ollama).
     """
-    logger.info(f"🧠 Shalu thinking... Input: {state['input']}")
+    logger.info(f"🧠 Jenny thinking... Input: {state['input']}")
 
     # Utilizing your original brain.chat logic (Variable names strictly preserved)
     result = brain.chat(state['input'])
@@ -41,7 +41,7 @@ def shalu_brain_node(state: ShaluState):
     }
 
 
-def shalu_action_node(state: ShaluState):
+def jenny_action_node(state: JennyState):
     """
     Executes the recognized automated tasks using action_manager.
     """
@@ -65,11 +65,11 @@ def shalu_action_node(state: ShaluState):
 # --- Graph Construction: Architecture Setup ---
 
 # Instantiate core graph wrapper binding state dictionary model
-workflow = StateGraph(ShaluState)
+workflow = StateGraph(JennyState)
 
 # Register execution stations as active Nodes
-workflow.add_node("brain", shalu_brain_node)
-workflow.add_node("action", shalu_action_node)
+workflow.add_node("brain", jenny_brain_node)
+workflow.add_node("action", jenny_action_node)
 
 # Set the primary operational point of entry
 workflow.set_entry_point("brain")
@@ -81,6 +81,6 @@ workflow.add_edge("brain", "action")
 workflow.add_edge("action", END)
 
 # Final engine compilation compilation phase
-shalu_app = workflow.compile()
+jenny_app = workflow.compile()
 
-logger.success("✅ Shalu LangGraph Engine Ready!")
+logger.success("✅ Jenny LangGraph Engine Ready!")

@@ -5,20 +5,20 @@ ROOT = pyrootutils.setup_root(__file__, indicator="requirements.txt")
 
 import time
 
-# Import Shalu core modules
+# Import Jenny core modules
 from core.stt import transcribe_from_mic
 from core.tts import tts_provider
 from core.wakeword import wake_word_detector
-from core.graph import shalu_app
+from core.graph import jenny_app
 from config.settings import settings
 from loguru import logger
 import requests
 
-class ShaluAssistant:
+class JennyAssistant:
     def __init__(self):
         self.wake_word = settings.WAKE_WORD_VARIANTS[0].title()
         self.session = requests.Session() # Persistent session for faster pings
-        logger.info(f"🚀 Shalu Assistant started. Wake Word: {self.wake_word}")
+        logger.info(f"🚀 Jenny Assistant started. Wake Word: {self.wake_word}")
 
     def update_status(self, text: str):
         """Map status text to Avatar state and notify backend rapidly"""
@@ -50,11 +50,17 @@ class ShaluAssistant:
         repeat_count = 0
 
         self.update_status(f"Say '{self.wake_word}'...")
+        
+        interrupted_text = None
 
         while True:
             current_time = time.time()
 
-            if active_session and (current_time - last_interaction_time < SESSION_TIMEOUT):
+            if interrupted_text:
+                user_text = interrupted_text
+                interrupted_text = None
+                self.update_status("Listening...")
+            elif active_session and (current_time - last_interaction_time < SESSION_TIMEOUT):
                 self.update_status("Listening...")
                 user_text = transcribe_from_mic(phrase_time_limit=4)
             else:
@@ -92,7 +98,7 @@ class ShaluAssistant:
                     logger.info("👋 User said bye. Going to standby mode.")
                     active_session = False
                     self.update_status(f"Say '{self.wake_word}'...")
-                    tts_provider.speak("बाय! जब ज़रूरत हो, शालू बोलकर बुला लेना.", callback=lambda: self.update_status("idle"))
+                    tts_provider.speak("बाय! जब ज़रूरत हो, जेनी बोलकर बुला लेना.", callback=lambda: self.update_status("idle"))
                     continue
 
                 # Handle repetitive simple affirmatives to prevent loop lock
@@ -120,19 +126,32 @@ class ShaluAssistant:
                     import threading
 
                     sentence_queue = queue.Queue()
+                    stop_tts_event = threading.Event()
+                    
+                    # --- BARGE-IN (INTERRUPTION) LOGIC ---
+                    current_spoken_sentence = ""
                     
                     def tts_worker():
-                        while True:
-                            sentence = sentence_queue.get()
-                            if sentence is None:  # Sentinel to stop thread
-                                break
-                            
-                            def trigger_sync():
-                                self.update_status("बोल रही हूँ...")
-                            
-                            # Speak the chunk
-                            tts_provider.speak(sentence, callback=trigger_sync)
-                            sentence_queue.task_done()
+                        nonlocal current_spoken_sentence
+                        while not stop_tts_event.is_set():
+                            try:
+                                sentence = sentence_queue.get(timeout=0.1)
+                                if sentence is None:  # Sentinel to stop thread
+                                    break
+                                
+                                current_spoken_sentence = sentence
+                                def trigger_sync():
+                                    self.update_status("बोल रही हूँ...")
+                                
+                                # Speak the chunk
+                                tts_provider.speak(sentence, callback=trigger_sync)
+                                
+                                # If interrupted while speaking, exit immediately
+                                if stop_tts_event.is_set():
+                                    break
+                                    
+                            except queue.Empty:
+                                continue
                             
                     tts_thread = threading.Thread(target=tts_worker, daemon=True)
                     tts_thread.start()
@@ -160,9 +179,36 @@ class ShaluAssistant:
                             if not final_state.get("response") and action_result and action_result != "ठीक है 😊":
                                 sentence_queue.put(action_result)
                             
-                    # Stop the TTS thread after all sentences are spoken
+                    # Tell TTS thread to stop after processing queue
                     sentence_queue.put(None)
-                    tts_thread.join()
+                    
+                    # Instead of blocking with join(), we listen to the mic while TTS plays!
+                    while tts_thread.is_alive():
+                        # We listen dynamically in short 2-second bursts
+                        text = transcribe_from_mic(phrase_time_limit=2.5)
+                        if text and len(text.strip()) > 3:
+                            # --- ECHO GUARD (TEXT-BASED) ---
+                            # Check if the text heard is just an echo of what Jenny is currently saying
+                            heard_clean = text.replace("।", "").replace(",", "").replace(".", "").strip()
+                            spoken_clean = current_spoken_sentence.replace("।", "").replace(",", "").replace(".", "").strip()
+                            
+                            heard_words = set(heard_clean.split())
+                            spoken_words = set(spoken_clean.split())
+                            
+                            overlap = len(heard_words.intersection(spoken_words))
+                            
+                            # If 40% or more of the heard words match the spoken words, it's an echo
+                            if heard_words and (overlap / len(heard_words)) >= 0.4:
+                                logger.info(f"🛡️ EchoGuard ignored self-audio: '{text}'")
+                                continue
+                                
+                            logger.info(f"🛑 Barge-in detected: '{text}'")
+                            stop_tts_event.set()
+                            tts_provider.stop() # Immediately kill afplay
+                            interrupted_text = text
+                            break
+                        
+                        time.sleep(0.05) # Prevent CPU spinning
 
                     active_session = True
                     last_interaction_time = time.time()
@@ -175,5 +221,5 @@ class ShaluAssistant:
             time.sleep(0.01) # Reduced delay for faster loop
 
 if __name__ == "__main__":
-    assistant = ShaluAssistant()
+    assistant = JennyAssistant()
     assistant.start()   

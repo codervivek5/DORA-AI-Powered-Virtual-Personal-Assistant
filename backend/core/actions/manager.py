@@ -12,7 +12,7 @@ from core.actions.weather import weather_actions
 
 class ActionManager:
     """
-    Central dispatcher for Muse AI actions.
+    Central dispatcher for Jenny AI actions.
     Optimized for high-reliability parsing and error-resilient execution.
     """
 

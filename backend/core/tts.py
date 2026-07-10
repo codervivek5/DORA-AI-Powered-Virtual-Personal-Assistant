@@ -4,25 +4,23 @@ import wave
 import tempfile
 import warnings
 import asyncio
-import sounddevice as sd
 import numpy as np
 import requests
-import edge_tts
 import base64
-from sarvamai import SarvamAI
 from typing import Tuple, Optional, Any
 from loguru import logger
 from config.settings import settings
-from scipy.signal import resample
 
 # Try to import Sarvam AI SDK
 try:
+    from sarvamai import SarvamAI
     SARVAM_SDK_AVAILABLE = True
 except ImportError:
     SARVAM_SDK_AVAILABLE = False
 
 # Try to import Edge TTS
 try:
+    import edge_tts
     EDGE_TTS_AVAILABLE = True
 except ImportError:
     EDGE_TTS_AVAILABLE = False
@@ -52,6 +50,7 @@ class TTSProvider:
     def __init__(self):
         self.provider = settings.TTS_PROVIDER.lower()
         self.api_key = settings.SARVAM_API_KEY or os.getenv("SARVAM_API_KEY")
+        self.active_process = None
 
         # Initialize Sarvam Client if available
         self.sarvam_client: Any = None
@@ -60,9 +59,20 @@ class TTSProvider:
                 self.sarvam_client = SarvamAI(api_subscription_key=self.api_key)
                 logger.info("Sarvam SDK initialized")
             except Exception as e:
-                logger.warning(f"Failed to initialize Sarvam SDK: {e}. Will use REST API fallback.")
+                logger.error(f"Failed to init Sarvam SDK: {e}")
 
-        logger.info(f"🔊 TTS Provider initialized: {self.provider.upper()}")
+        logger.info(f"🔊 Initialized TTS Provider: {self.provider.upper()}")
+        
+    def stop(self):
+        """Safely stops the current audio playback."""
+        if self.active_process:
+            try:
+                self.active_process.terminate()
+                self.active_process.wait(timeout=0.3)
+            except Exception as e:
+                pass
+            finally:
+                self.active_process = None
 
     # --------------------------------------------------
     # EDGE TTS — Primary natural voice engine
@@ -256,8 +266,14 @@ class TTSProvider:
                         try: callback()
                         except: pass
                         
-                    subprocess.run(["afplay", tmp_path], check=True)
-                    os.unlink(tmp_path)
+                    # Play asynchronously and wait, allowing it to be killed
+                    self.active_process = subprocess.Popen(["afplay", tmp_path])
+                    self.active_process.wait()
+                    self.active_process = None
+                    
+                    try: os.unlink(tmp_path)
+                    except: pass
+                    
                     logger.success("✅ Playback completed (Edge Fast Path)")
                     return True
                 

@@ -3,7 +3,7 @@ import subprocess
 import urllib.parse
 
 class WhatsappActions:
-    """Muse's voice - Communication controls for macOS"""
+    """Jenny's voice - Communication controls for macOS"""
 
     def send_whatsapp_message(self, person_name: str, message: str):
         """

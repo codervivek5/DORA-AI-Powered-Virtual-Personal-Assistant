@@ -8,9 +8,9 @@ from typing import List, Dict, Any
 from config.settings import settings
 
 
-class MuseBrain:
+class JennyBrain:
     """
-    Muse Brain: Features persistent storage, context pruning for speed,
+    Jenny Brain: Features persistent storage, context pruning for speed,
     and structured regex parsing for macOS automation.
     """
 
@@ -221,6 +221,11 @@ class MuseBrain:
                                     parts = action_param_buffer.split("RESPONSE:", 1)
                                     if len(parts) > 1:
                                         sentence_buffer += parts[1]
+                                # If LLM ignores the prompt format and just starts talking
+                                elif "ACTION:" not in action_param_buffer and len(action_param_buffer) > 20:
+                                    response_started = True
+                                    sentence_buffer += action_param_buffer
+                                    action_param_buffer = ""
                             else:
                                 sentence_buffer += chunk
                                 
@@ -260,25 +265,60 @@ class MuseBrain:
             yield {"type": "final", "state": parsed}
 
         except Exception as e:
+            from loguru import logger
+            logger.exception(f"❌ chat_stream FATAL ERROR: {e}")
             yield {"type": "sentence", "text": "कुछ गड़बड़ हो गई, मुझे समझ नहीं आया।"}
             yield {"type": "final", "state": {"action": "ERROR", "param": None, "response": str(e)}}
 
     def clear_history(self):
-        """Reset Muse's memory."""
+        """Reset Jenny's memory."""
         self.conversation_history = []
         if os.path.exists(self.memory_file):
             os.remove(self.memory_file)
         print("🧠 Memory cleared.")
 
+    def check_ollama_connection(self) -> bool:
+        """Checks if Ollama is running and reachable."""
+        try:
+            with httpx.Client(timeout=3.0) as client:
+                response = client.get(f"{self.base_url}/api/tags")
+                return response.status_code == 200
+        except Exception:
+            return False
+
+    def get_available_models(self) -> List[str]:
+        """Fetches the list of available models from Ollama."""
+        try:
+            with httpx.Client(timeout=3.0) as client:
+                response = client.get(f"{self.base_url}/api/tags")
+                if response.status_code == 200:
+                    data = response.json()
+                    models = [model.get("name") for model in data.get("models", []) if model.get("name")]
+                    return models
+        except Exception:
+            pass
+        return []
+
+
 
 # Global brain instance
-brain = MuseBrain()
+brain = JennyBrain()
+
+# Connectivity check on startup
+try:
+    from loguru import logger
+    test_resp = __import__('httpx').get(f"{brain.base_url}/api/tags", timeout=3.0)
+    test_resp.raise_for_status()
+    logger.success(f"✅ Ollama connected at {brain.base_url} | Model: {brain.model}")
+except Exception as _conn_err:
+    from loguru import logger
+    logger.critical(f"🔴 OLLAMA NOT REACHABLE: {_conn_err} — Run: ollama serve")
 
 # --- PRODUCTION TESTING BLOCK ---
 
 if __name__ == "__main__":
-    print("--- Muse AI Brain Diagnostic ---")
-    brain = MuseBrain()
+    print("--- Jenny AI Brain Diagnostic ---")
+    brain = JennyBrain()
 
     # 1. Check Connection
     try:
@@ -294,14 +334,14 @@ if __name__ == "__main__":
     # 2. Test Conversation & Parsing
     print("\n--- Starting Test Conversation ---")
     queries = [
-        "Hey Muse, how are you?",
+        "Hey Jenny, how are you?",
         "What was my friends name again?"
     ]
 
     for q in queries:
         print(f"\nUSER: {q}")
         result = brain.chat(q)
-        print(f"MUSE RESPONSE: {result['response']}")
+        print(f"JENNY RESPONSE: {result['response']}")
         if result['action']:
             print(f"🛠️ ACTION TRIGGERED: {result['action']} with {result['param']}")
         print("-" * 30)
